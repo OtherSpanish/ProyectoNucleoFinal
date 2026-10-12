@@ -1,0 +1,10 @@
+<header class="navbar">
+  <a class="marca" routerLink="/inicio">Aula Sync</a>
+  <nav>
+    <a *ngFor="let item of menu()" [routerLink]="'/' + item.ruta" routerLinkActive="activo">{{ item.etiqueta }}</a>
+  </nav>
+  <div class="usuario">
+    <span>{{ usuario()?.nombre }} · <em>{{ rol() }}</em></span>
+    <button type="button" (click)="salir()">Cerrar sesión</button>
+  </div>
+</header>

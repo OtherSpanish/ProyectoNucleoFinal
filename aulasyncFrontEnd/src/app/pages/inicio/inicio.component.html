@@ -1,0 +1,9 @@
+<h2>Bienvenido, {{ usuario()?.nombre }}</h2>
+<p class="ayuda">Rol: {{ rol() }}. Estas son las funciones disponibles para ti:</p>
+
+<div class="tarjetas">
+  <a class="card tarjeta" *ngFor="let a of accesos()" [routerLink]="'/' + a.ruta">
+    <h3>{{ a.etiqueta }}</h3>
+    <p>{{ a.descripcion }}</p>
+  </a>
+</div>

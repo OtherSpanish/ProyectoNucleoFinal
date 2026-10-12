@@ -1,0 +1,49 @@
+<h2>Consultar horario</h2>
+<p class="ayuda">Revisa el horario por curso o por docente antes de aprobar su publicación (RL2).</p>
+
+<div class="card">
+  <div class="fila-form">
+    <label>Consultar por
+      <select [ngModel]="modo" (ngModelChange)="cambiarModo($event)" name="modo">
+        <option value="curso">Curso</option>
+        <option value="docente">Docente</option>
+      </select>
+    </label>
+    <label>{{ modo === 'curso' ? 'Curso' : 'Docente' }}
+      <select [(ngModel)]="filtroId" name="filtro">
+        <option value="">Todos</option>
+        <ng-container *ngIf="modo === 'curso'">
+          <option *ngFor="let c of data.cursos()" [value]="c.id">{{ c.nombre }}</option>
+        </ng-container>
+        <ng-container *ngIf="modo === 'docente'">
+          <option *ngFor="let d of data.docentes()" [value]="d.id">{{ d.nombre }}</option>
+        </ng-container>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="exportarCsv()" [disabled]="filas.length === 0">Exportar CSV</button>
+  </div>
+
+  <p class="vacio" *ngIf="filas.length === 0">No hay sesiones ubicadas para mostrar.</p>
+
+  <table *ngIf="filas.length > 0">
+    <thead><tr><th>Curso</th><th>Sesión</th><th>Docente</th><th>Grupo</th><th>Día</th><th>Horario</th><th>Aula</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let s of filas">
+        <td>{{ data.nombreCurso(s.cursoId) }}</td>
+        <td>{{ s.numero }}</td>
+        <td>{{ data.nombreDocente(s.docenteId) }}</td>
+        <td>{{ data.nombreGrupo(s.grupoId) }}</td>
+        <td>{{ dias[s.dia! - 1] }}</td>
+        <td>{{ s.hora }}:00–{{ s.hora! + s.duracion }}:00</td>
+        <td>{{ data.nombreAula(s.aulaId) }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card" *ngIf="schedule.sinUbicar().length > 0">
+  <h3>Sesiones sin ubicar</h3>
+  <ul>
+    <li *ngFor="let s of schedule.sinUbicar()">{{ schedule.etiqueta(s) }} – {{ s.causa }}</li>
+  </ul>
+</div>

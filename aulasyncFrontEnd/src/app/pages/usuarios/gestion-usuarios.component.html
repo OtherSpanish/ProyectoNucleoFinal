@@ -1,0 +1,35 @@
+<h2>Usuarios y roles</h2>
+<p class="ayuda">Cada rol accede solo a las funciones que le corresponden (CA10).</p>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let u of data.usuarios()">
+        <td>{{ u.nombre }}</td>
+        <td>{{ u.usuario }}</td>
+        <td>
+          <select [ngModel]="u.rol" (ngModelChange)="cambiarRol(u.id, $event)" [name]="'rol' + u.id">
+            <option *ngFor="let r of roles" [value]="r.valor">{{ r.etiqueta }}</option>
+          </select>
+        </td>
+        <td><input type="checkbox" [checked]="u.activo" [disabled]="esYo(u.id)" (change)="alternarActivo(u.id)"></td>
+        <td><button type="button" class="peligro" [disabled]="esYo(u.id)" (click)="eliminar(u.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Nuevo usuario</h3>
+  <p class="alerta error" *ngIf="error">{{ error }}</p>
+  <div class="fila-form">
+    <label>Nombre <input [(ngModel)]="nuevo.nombre" name="nn"></label>
+    <label>Usuario <input [(ngModel)]="nuevo.usuario" name="nu"></label>
+    <label>Contraseña <input type="password" [(ngModel)]="nuevo.clave" name="nc"></label>
+    <label>Rol
+      <select [(ngModel)]="nuevo.rol" name="nr">
+        <option *ngFor="let r of roles" [value]="r.valor">{{ r.etiqueta }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="agregar()">Agregar usuario</button>
+  </div>
+</div>

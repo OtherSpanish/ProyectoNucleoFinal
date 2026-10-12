@@ -1,0 +1,25 @@
+<h2>Historial de cambios</h2>
+<p class="ayuda">Registro de auditoría de las modificaciones manuales. No se puede editar ni borrar (RNF8).</p>
+
+<div class="card">
+  <label>Sesión
+    <select [(ngModel)]="sesionId" name="ses">
+      <option value="">Todas las sesiones</option>
+      <option *ngFor="let s of schedule.sesiones()" [value]="s.id">{{ schedule.etiqueta(s) }} ({{ s.id }})</option>
+    </select>
+  </label>
+
+  <p class="vacio" *ngIf="registros.length === 0">No hay cambios registrados.</p>
+
+  <table *ngIf="registros.length > 0">
+    <thead><tr><th>Fecha y hora</th><th>Sesión</th><th>Usuario</th><th>Cambio</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of registros">
+        <td>{{ r.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+        <td>{{ r.sesionEtiqueta }}</td>
+        <td>{{ r.usuario }}</td>
+        <td>{{ r.cambio }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

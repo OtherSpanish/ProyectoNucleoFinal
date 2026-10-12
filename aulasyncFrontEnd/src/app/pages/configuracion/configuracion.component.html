@@ -1,0 +1,30 @@
+<h2>Configuración general</h2>
+<p class="ayuda">Los cambios se aplican al calendario, a las validaciones y a los datos maestros sin tocar el código.</p>
+
+<div class="card">
+  <h3>Franja horaria general</h3>
+  <div class="fila-form">
+    <label>Lun–Vie desde (h) <input type="number" [(ngModel)]="form.horaInicioSemana" name="a"></label>
+    <label>Lun–Vie hasta (h) <input type="number" [(ngModel)]="form.horaFinSemana" name="b"></label>
+    <label>Sábado desde (h) <input type="number" [(ngModel)]="form.horaInicioSabado" name="c"></label>
+    <label>Sábado hasta (h) <input type="number" [(ngModel)]="form.horaFinSabado" name="d"></label>
+  </div>
+  <div class="fila-form">
+    <label>Sin clases desde (h) <input type="number" [(ngModel)]="form.almuerzoInicio" name="e"></label>
+    <label>Sin clases hasta (h) <input type="number" [(ngModel)]="form.almuerzoFin" name="f"></label>
+  </div>
+
+  <h3>Sesiones y grupos</h3>
+  <div class="fila-form">
+    <label>Duración de sesión (h) <input type="number" [(ngModel)]="form.duracionSesionHoras" name="g"></label>
+    <label>Sesiones máx. por semana <input type="number" [(ngModel)]="form.sesionesMaxSemana" name="h"></label>
+    <label>Límite de estudiantes por grupo <input type="number" [(ngModel)]="form.limiteGrupo" name="i"></label>
+    <label>Tolerancia (%) <input type="number" [(ngModel)]="form.toleranciaPorcentaje" name="j"></label>
+  </div>
+
+  <p class="alerta error" *ngIf="error">{{ error }}</p>
+  <p class="alerta ok" *ngIf="mensaje">{{ mensaje }}</p>
+
+  <button type="button" class="primario" (click)="guardar()">Guardar</button>
+  <button type="button" (click)="restaurar()">Descartar cambios</button>
+</div>

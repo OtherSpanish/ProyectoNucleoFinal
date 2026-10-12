@@ -1,0 +1,10 @@
+<h2>Calendario semanal</h2>
+<p class="vacio" *ngIf="schedule.sesiones().length === 0">
+  Aún no hay un horario generado. El Comité Táctico debe generar la propuesta inicial.
+</p>
+<p class="resumen" *ngIf="schedule.sesiones().length > 0">
+  Sesiones ubicadas: {{ schedule.ubicadas().length }} · Sin ubicar: {{ schedule.sinUbicar().length }}
+</p>
+<div class="card">
+  <app-calendario-semanal [sesiones]="schedule.sesiones()"></app-calendario-semanal>
+</div>
