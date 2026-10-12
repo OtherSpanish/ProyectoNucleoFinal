@@ -1,0 +1,43 @@
+<h2>Disponibilidad docente</h2>
+<p class="ayuda">El motor y el editor solo ubican sesiones dentro de las franjas declaradas aquí (RD4).</p>
+
+<div class="card">
+  <label>Docente
+    <select [(ngModel)]="docenteId" name="doc">
+      <option *ngFor="let d of data.docentes()" [value]="d.id">{{ d.nombre }}</option>
+    </select>
+  </label>
+
+  <ng-container *ngIf="docente as d">
+    <label>Tipo de dedicación
+      <select [ngModel]="d.dedicacion" (ngModelChange)="cambiarDedicacion($event)" name="ded">
+        <option *ngFor="let x of dedicaciones" [value]="x.valor">{{ x.etiqueta }}</option>
+      </select>
+    </label>
+
+    <h3>Franjas disponibles</h3>
+    <p class="vacio" *ngIf="d.disponibilidad.length === 0">Este docente no ha declarado disponibilidad.</p>
+    <table *ngIf="d.disponibilidad.length > 0">
+      <thead><tr><th>Día</th><th>Desde</th><th>Hasta</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let f of d.disponibilidad; let i = index">
+          <td>{{ dias[f.dia - 1] }}</td><td>{{ f.horaInicio }}:00</td><td>{{ f.horaFin }}:00</td>
+          <td><button type="button" class="peligro" (click)="quitar(i)">Quitar</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Agregar franja</h3>
+    <p class="alerta error" *ngIf="error">{{ error }}</p>
+    <div class="fila-form">
+      <label>Día
+        <select [(ngModel)]="nueva.dia" name="nd">
+          <option *ngFor="let n of numDias" [ngValue]="n">{{ dias[n - 1] }}</option>
+        </select>
+      </label>
+      <label>Desde (hora) <input type="number" min="0" max="23" [(ngModel)]="nueva.horaInicio" name="hi"></label>
+      <label>Hasta (hora) <input type="number" min="1" max="24" [(ngModel)]="nueva.horaFin" name="hf"></label>
+      <button type="button" class="primario" (click)="agregar()">Agregar</button>
+    </div>
+  </ng-container>
+</div>

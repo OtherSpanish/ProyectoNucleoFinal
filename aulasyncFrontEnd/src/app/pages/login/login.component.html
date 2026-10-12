@@ -1,0 +1,26 @@
+<div class="login">
+  <div class="card">
+    <h1>Aula Sync</h1>
+    <p class="ayuda">Generación de horarios de clases – Ingeniería de Sistemas</p>
+
+    <form (ngSubmit)="ingresar()">
+      <label>Usuario
+        <input name="usuario" [(ngModel)]="usuario" autocomplete="username" required>
+      </label>
+      <label>Contraseña
+        <input name="clave" type="password" [(ngModel)]="clave" autocomplete="current-password" required>
+      </label>
+      <p class="alerta error" *ngIf="error">{{ error }}</p>
+      <button type="submit" class="primario">Ingresar</button>
+    </form>
+
+    <hr>
+    <p class="ayuda">Usuarios de demostración (clic para rellenar):</p>
+    <ul class="demo">
+      <li *ngFor="let u of data.usuarios()">
+        <a href="javascript:void(0)" (click)="usar(u.usuario, u.clave)">{{ u.usuario }} / {{ u.clave }}</a>
+        – {{ rol(u.rol) }}
+      </li>
+    </ul>
+  </div>
+</div>

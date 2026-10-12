@@ -1,0 +1,24 @@
+<div class="card">
+  <h3>Sesiones sin ubicar ({{ schedule.sinUbicar().length }})</h3>
+
+  <p *ngIf="schedule.sinUbicar().length === 0" class="vacio">No hay sesiones sin ubicar.</p>
+
+  <p *ngIf="arrastrable && schedule.sinUbicar().length > 0" class="ayuda">
+    Arrastra una sesión hacia el calendario para ubicarla.
+  </p>
+
+  <ul class="lista-sesiones">
+    <li
+      *ngFor="let s of schedule.sinUbicar()"
+      [attr.draggable]="arrastrable"
+      [class.arrastrable]="arrastrable"
+      (dragstart)="alIniciarArrastre($event, s)"
+      (dragend)="alTerminarArrastre()"
+      (click)="seleccionar.emit(s.id)"
+    >
+      <strong>{{ schedule.etiqueta(s) }}</strong>
+      <small>{{ data.nombreDocente(s.docenteId) }} · {{ data.nombreGrupo(s.grupoId) }} · {{ s.duracion }} h</small>
+      <small class="causa">Causa: {{ s.causa }}</small>
+    </li>
+  </ul>
+</div>

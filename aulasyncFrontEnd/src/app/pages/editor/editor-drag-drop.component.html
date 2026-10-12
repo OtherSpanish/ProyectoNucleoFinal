@@ -1,0 +1,60 @@
+<h2>Editor de horario</h2>
+<p class="ayuda">
+  Arrastra una sesión a otra franja; la celda se pinta en verde si el movimiento es válido y en rojo si genera un conflicto.
+  Haz clic en una sesión para cambiarle el aula o retirarla de su franja.
+</p>
+
+<p class="vacio" *ngIf="schedule.sesiones().length === 0">
+  No hay horario generado todavía. Ve a «Generar propuesta».
+</p>
+
+<div class="editor" *ngIf="schedule.sesiones().length > 0">
+  <div class="card">
+    <app-calendario-semanal
+      [sesiones]="schedule.sesiones()"
+      [editable]="true"
+      [seleccionadaId]="seleccionId"
+      (soltar)="alSoltar($event)"
+      (seleccionar)="seleccionar($event)"
+    ></app-calendario-semanal>
+  </div>
+
+  <aside>
+    <!-- Alertas de validación (CU07) -->
+    <div class="alerta" *ngIf="alerta" [class.ok]="alerta.tipo === 'ok'" [class.error]="alerta.tipo === 'error'">
+      <strong>{{ alerta.titulo }}</strong>
+      <ul *ngIf="alerta.resultado.conflictos.length > 0">
+        <li *ngFor="let c of alerta.resultado.conflictos"><b>{{ c.regla }}</b> – {{ c.mensaje }}</li>
+      </ul>
+      <ul *ngIf="alerta.resultado.advertencias.length > 0" class="avisos">
+        <li *ngFor="let a of alerta.resultado.advertencias">{{ a }}</li>
+      </ul>
+      <button type="button" (click)="alerta = null">Cerrar</button>
+    </div>
+
+    <!-- Detalle de la sesión seleccionada -->
+    <div class="card" *ngIf="seleccionada as s">
+      <h3>{{ schedule.etiqueta(s) }}</h3>
+      <p>
+        Docente: {{ data.nombreDocente(s.docenteId) }}<br>
+        Grupo: {{ data.nombreGrupo(s.grupoId) }}<br>
+        Duración: {{ s.duracion }} h<br>
+        Estado: {{ schedule.descripcionPosicion(s) }}
+      </p>
+      <ng-container *ngIf="s.estado === 'UBICADA'; else sinUbicar">
+        <label>Aula
+          <select [(ngModel)]="aulaNueva" name="aulaNueva">
+            <option *ngFor="let a of data.aulas()" [value]="a.id">{{ a.nombre }} ({{ a.capacidad }})</option>
+          </select>
+        </label>
+        <button type="button" class="primario" (click)="cambiarAula()">Cambiar aula</button>
+        <button type="button" class="peligro" (click)="retirar()">Retirar de su franja</button>
+      </ng-container>
+      <ng-template #sinUbicar>
+        <p class="ayuda">Arrastra esta sesión al calendario para ubicarla.</p>
+      </ng-template>
+    </div>
+
+    <app-panel-sin-ubicar [arrastrable]="true" (seleccionar)="seleccionar($event)"></app-panel-sin-ubicar>
+  </aside>
+</div>

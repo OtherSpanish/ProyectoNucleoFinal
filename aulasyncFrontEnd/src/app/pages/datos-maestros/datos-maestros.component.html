@@ -1,0 +1,137 @@
+<h2>Datos maestros</h2>
+<p class="ayuda">Registra la oferta académica del periodo (RF1). Después de modificar datos, vuelve a generar la propuesta.</p>
+
+<div class="pestanas">
+  <button type="button" *ngFor="let p of pestanas" [class.activa]="activa === p.id" (click)="cambiar(p.id)">{{ p.etiqueta }}</button>
+</div>
+
+<p class="alerta error" *ngIf="error">{{ error }}</p>
+
+<!-- CURSOS -->
+<div class="card" *ngIf="activa === 'cursos'">
+  <table>
+    <thead><tr><th>Curso</th><th>Sesiones/semana</th><th>Duración (h)</th><th>Tipo de aula</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let c of data.cursos()">
+        <td>{{ c.nombre }}</td><td>{{ c.sesionesSemanales }}</td><td>{{ c.duracionHoras }}</td><td>{{ etqAula(c.tipoAula) }}</td>
+        <td><button type="button" class="peligro" (click)="eliminarCurso(c.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="fila-form">
+    <label>Nombre <input [(ngModel)]="curso.nombre" name="cn"></label>
+    <label>Sesiones/semana <input type="number" min="1" max="4" [(ngModel)]="curso.sesionesSemanales" name="cs"></label>
+    <label>Duración
+      <select [(ngModel)]="curso.duracionHoras" name="cd">
+        <option [ngValue]="2">2 h</option>
+        <option [ngValue]="4">4 h</option>
+      </select>
+    </label>
+    <label>Tipo de aula
+      <select [(ngModel)]="curso.tipoAula" name="ct">
+        <option *ngFor="let t of tiposAula" [ngValue]="t.valor">{{ t.etiqueta }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="agregarCurso()">Agregar curso</button>
+  </div>
+</div>
+
+<!-- SECCIONES -->
+<div class="card" *ngIf="activa === 'secciones'">
+  <table>
+    <thead><tr><th>Curso</th><th>Sección</th><th>Docente</th><th>Grupo</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let s of data.secciones()">
+        <td>{{ data.nombreCurso(s.cursoId) }}</td><td>{{ s.numero }}</td>
+        <td>{{ data.nombreDocente(s.docenteId) }}</td><td>{{ data.nombreGrupo(s.grupoId) }}</td>
+        <td><button type="button" class="peligro" (click)="eliminarSeccion(s.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="fila-form">
+    <label>Curso
+      <select [(ngModel)]="seccion.cursoId" name="sc">
+        <option value="">— elegir —</option>
+        <option *ngFor="let c of data.cursos()" [value]="c.id">{{ c.nombre }}</option>
+      </select>
+    </label>
+    <label>Docente
+      <select [(ngModel)]="seccion.docenteId" name="sd">
+        <option value="">— elegir —</option>
+        <option *ngFor="let d of data.docentes()" [value]="d.id">{{ d.nombre }}</option>
+      </select>
+    </label>
+    <label>Grupo
+      <select [(ngModel)]="seccion.grupoId" name="sg">
+        <option value="">— elegir —</option>
+        <option *ngFor="let g of data.grupos()" [value]="g.id">{{ g.nombre }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="agregarSeccion()">Agregar sección</button>
+  </div>
+</div>
+
+<!-- DOCENTES -->
+<div class="card" *ngIf="activa === 'docentes'">
+  <table>
+    <thead><tr><th>Docente</th><th>Dedicación</th><th>Franjas declaradas</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let d of data.docentes()">
+        <td>{{ d.nombre }}</td><td>{{ etqDedicacion(d.dedicacion) }}</td><td>{{ d.disponibilidad.length }}</td>
+        <td><button type="button" class="peligro" (click)="eliminarDocente(d.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="ayuda">La disponibilidad se declara en la página «Disponibilidad docente».</p>
+  <div class="fila-form">
+    <label>Nombre <input [(ngModel)]="docente.nombre" name="dn"></label>
+    <label>Dedicación
+      <select [(ngModel)]="docente.dedicacion" name="dd">
+        <option *ngFor="let d of dedicaciones" [ngValue]="d.valor">{{ d.etiqueta }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="agregarDocente()">Agregar docente</button>
+  </div>
+</div>
+
+<!-- AULAS -->
+<div class="card" *ngIf="activa === 'aulas'">
+  <table>
+    <thead><tr><th>Aula</th><th>Capacidad</th><th>Tipo</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let a of data.aulas()">
+        <td>{{ a.nombre }}</td><td>{{ a.capacidad }}</td><td>{{ etqAula(a.tipo) }}</td>
+        <td><button type="button" class="peligro" (click)="eliminarAula(a.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="fila-form">
+    <label>Nombre <input [(ngModel)]="aula.nombre" name="an"></label>
+    <label>Capacidad <input type="number" min="1" [(ngModel)]="aula.capacidad" name="ac"></label>
+    <label>Tipo
+      <select [(ngModel)]="aula.tipo" name="at">
+        <option *ngFor="let t of tiposAula" [ngValue]="t.valor">{{ t.etiqueta }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="agregarAula()">Agregar aula</button>
+  </div>
+</div>
+
+<!-- GRUPOS -->
+<div class="card" *ngIf="activa === 'grupos'">
+  <table>
+    <thead><tr><th>Grupo</th><th>Semestre</th><th>Estudiantes</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let g of data.grupos()">
+        <td>{{ g.nombre }}</td><td>{{ g.semestre }}</td><td>{{ g.estudiantes }}</td>
+        <td><button type="button" class="peligro" (click)="eliminarGrupo(g.id)">Eliminar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="fila-form">
+    <label>Nombre <input [(ngModel)]="grupo.nombre" name="gn"></label>
+    <label>Semestre <input type="number" min="1" max="10" [(ngModel)]="grupo.semestre" name="gs"></label>
+    <label>Estudiantes <input type="number" min="1" [(ngModel)]="grupo.estudiantes" name="ge"></label>
+    <button type="button" class="primario" (click)="agregarGrupo()">Agregar grupo</button>
+  </div>
+</div>
