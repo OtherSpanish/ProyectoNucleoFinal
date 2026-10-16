@@ -9,10 +9,12 @@ import { AuthService } from './core/auth.service';
   standalone: true,
   imports: [NgIf, RouterOutlet, NavbarComponent],
   template: `
-    <app-navbar *ngIf="auth.autenticado()"></app-navbar>
-    <main class="contenedor">
-      <router-outlet></router-outlet>
-    </main>
+    <div class="app" [class.con-menu]="auth.autenticado()">
+      <app-navbar *ngIf="auth.autenticado()"></app-navbar>
+      <main class="contenedor">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
   `,
 })
 export class AppComponent {
