@@ -16,6 +16,7 @@ export class NavbarComponent {
   private router = inject(Router);
 
   usuario = this.auth.usuario;
+  logo = 'logo.png';
   menu = computed(() => {
     const u = this.auth.usuario();
     return u ? MENU.filter((m) => m.roles.includes(u.rol)) : [];
