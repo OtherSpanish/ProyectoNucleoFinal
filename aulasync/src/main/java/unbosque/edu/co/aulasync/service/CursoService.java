@@ -12,6 +12,7 @@ import unbosque.edu.co.aulasync.exception.EntidadNoEncontradaException;
 import unbosque.edu.co.aulasync.exception.LanzadorException;
 import unbosque.edu.co.aulasync.exception.ValidacionException;
 import unbosque.edu.co.aulasync.model.Curso;
+import unbosque.edu.co.aulasync.model.Seccion;
 import unbosque.edu.co.aulasync.repository.CursoRepository;
 import unbosque.edu.co.aulasync.repository.SeccionRepository;
 
@@ -31,6 +32,7 @@ public class CursoService {
 
 	private final CursoRepository cursoRepo;
 	private final SeccionRepository seccionRepo;
+	private final HorarioService horarioService;
 
 	/**
 	 * Crea el servicio con los repositorios que necesita.
@@ -38,10 +40,13 @@ public class CursoService {
 	 * @param cursoRepo   repositorio de cursos
 	 * @param seccionRepo repositorio de secciones, usado para verificar
 	 *                    dependencias al eliminar
+	 * @param horarioService servicio del horario guardado, que se sincroniza al
+	 *                    editar un curso
 	 */
-	public CursoService(CursoRepository cursoRepo, SeccionRepository seccionRepo) {
+	public CursoService(CursoRepository cursoRepo, SeccionRepository seccionRepo, HorarioService horarioService) {
 		this.cursoRepo = cursoRepo;
 		this.seccionRepo = seccionRepo;
+		this.horarioService = horarioService;
 	}
 
 	/**
@@ -82,6 +87,42 @@ public class CursoService {
 		curso.setTipoAula(dto.getTipoAula());
 
 		return aDto(cursoRepo.save(curso));
+	}
+
+	/**
+	 * Edita un curso. Si cambian las sesiones por semana, la duración o el tipo
+	 * de aula, se ajustan las sesiones guardadas de sus secciones: se crean o
+	 * descartan las que correspondan y, si cambió la duración o el tipo de aula,
+	 * todas vuelven a "sin ubicar" para que el Comité las acomode de nuevo.
+	 *
+	 * @param id  identificador del curso
+	 * @param dto datos nuevos del curso
+	 * @return el curso actualizado
+	 * @throws EntidadNoEncontradaException si el curso no existe
+	 * @throws ValidacionException          si los datos son inválidos
+	 */
+	@Transactional(rollbackFor = Exception.class)
+	public CursoResponseDto actualizar(Long id, CursoRequestDto dto)
+			throws EntidadNoEncontradaException, ValidacionException {
+		Curso curso = buscar(id);
+		validar(dto);
+
+		boolean cambioFormato = curso.getDuracionHoras() != dto.getDuracionHoras()
+				|| curso.getTipoAula() != dto.getTipoAula();
+		boolean cambioSesiones = curso.getSesionesSemana() != dto.getSesionesSemana();
+
+		curso.setNombre(dto.getNombre().trim());
+		curso.setSesionesSemana(dto.getSesionesSemana());
+		curso.setDuracionHoras(dto.getDuracionHoras());
+		curso.setTipoAula(dto.getTipoAula());
+		Curso guardado = cursoRepo.save(curso);
+
+		if (cambioFormato || cambioSesiones) {
+			for (Seccion seccion : seccionRepo.findByCursoId(id)) {
+				horarioService.sincronizarSeccion(seccion, cambioFormato);
+			}
+		}
+		return aDto(guardado);
 	}
 
 	/**

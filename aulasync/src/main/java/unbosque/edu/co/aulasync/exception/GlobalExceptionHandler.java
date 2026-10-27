@@ -1,5 +1,6 @@
 package unbosque.edu.co.aulasync.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -68,6 +69,40 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<ErrorDto> manejarCuerpoInvalido(HttpMessageNotReadableException ex) {
 		return construir(HttpStatus.BAD_REQUEST, "El cuerpo de la petición es inválido o tiene valores no permitidos.");
+	}
+
+	/**
+	 * Maneja peticiones sin sesión válida.
+	 *
+	 * @param ex excepción de autenticación.
+	 * @return respuesta 401 con el mensaje correspondiente.
+	 */
+	@ExceptionHandler(NoAutenticadoException.class)
+	public ResponseEntity<ErrorDto> manejarNoAutenticado(NoAutenticadoException ex) {
+		return construir(HttpStatus.UNAUTHORIZED, ex.getMessage());
+	}
+
+	/**
+	 * Maneja operaciones que el rol del usuario no puede realizar.
+	 *
+	 * @param ex excepción de autorización.
+	 * @return respuesta 403 con el mensaje correspondiente.
+	 */
+	@ExceptionHandler(AccesoDenegadoException.class)
+	public ResponseEntity<ErrorDto> manejarAccesoDenegado(AccesoDenegadoException ex) {
+		return construir(HttpStatus.FORBIDDEN, ex.getMessage());
+	}
+
+	/**
+	 * Maneja violaciones de restricciones de la base de datos (por ejemplo, un
+	 * correo repetido que se coló entre dos peticiones simultáneas).
+	 *
+	 * @param ex excepción de integridad de datos.
+	 * @return respuesta 409 con un mensaje genérico.
+	 */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<ErrorDto> manejarIntegridad(DataIntegrityViolationException ex) {
+		return construir(HttpStatus.CONFLICT, "La operación viola una restricción de integridad de los datos.");
 	}
 
 	private ResponseEntity<ErrorDto> construir(HttpStatus estado, String mensaje) {

@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import unbosque.edu.co.aulasync.dto.RespuestaDemoDto;
 import unbosque.edu.co.aulasync.dto.RespuestaGeneracionDto;
+import unbosque.edu.co.aulasync.seguridad.Rol;
+import unbosque.edu.co.aulasync.seguridad.RolesPermitidos;
 import unbosque.edu.co.aulasync.service.MotorHorarioService;
 
 /**
@@ -63,6 +65,7 @@ public class MotorHorarioController {
 	 * @return sesiones ubicadas y sin ubicar
 	 */
 	@PostMapping("/generar")
+	@RolesPermitidos(Rol.COMITE)
 	public RespuestaGeneracionDto generar() {
 		return motorService.generarHorario();
 	}

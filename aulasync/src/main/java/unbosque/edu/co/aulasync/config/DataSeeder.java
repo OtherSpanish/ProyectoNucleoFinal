@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Profile;
 import unbosque.edu.co.aulasync.model.*;
 import unbosque.edu.co.aulasync.motor.TipoAula;
 import unbosque.edu.co.aulasync.repository.*;
+import unbosque.edu.co.aulasync.seguridad.ContrasenaService;
+import unbosque.edu.co.aulasync.seguridad.Rol;
 
 @Configuration
 @Profile("dev")
@@ -18,14 +20,18 @@ public class DataSeeder {
 
 	@Bean
 	CommandLineRunner seedData(UsuarioRepository usuarioRepo, CursoRepository cursoRepo, DocenteRepository docenteRepo,
-			AulaRepository aulaRepo, GrupoRepository grupoRepo, SeccionRepository seccionRepo) {
+			AulaRepository aulaRepo, GrupoRepository grupoRepo, SeccionRepository seccionRepo,
+			ContrasenaService contrasenas) {
 		return args -> {
 			if (usuarioRepo.count() > 0)
 				return;
 
-			usuarioRepo.saveAll(List.of(new Usuario("Admin", "admin@aulasync.com", "admin123", "ADMIN"),
-					new Usuario("Profesor Demo", "profe@aulasync.com", "profe123", "PROFESOR"),
-					new Usuario("Estudiante Demo", "estudiante@aulasync.com", "est123", "ESTUDIANTE")));
+			usuarioRepo.saveAll(List.of(
+					new Usuario("Admin", "admin@aulasync.com", contrasenas.cifrar("admin123"), Rol.ADMIN.name()),
+					new Usuario("Dirección Demo", "direccion@aulasync.com", contrasenas.cifrar("direccion123"),
+							Rol.DIRECCION.name()),
+					new Usuario("Comité Demo", "comite@aulasync.com", contrasenas.cifrar("comite123"),
+							Rol.COMITE.name())));
 
 			// Cursos
 			Curso ed = curso("Estructuras de Datos", 2, 2, TipoAula.CONVENCIONAL);

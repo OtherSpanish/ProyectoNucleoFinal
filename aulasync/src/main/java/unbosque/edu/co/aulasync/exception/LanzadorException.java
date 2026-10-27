@@ -114,4 +114,30 @@ public class LanzadorException {
 			throw new CursoConSeccionesException();
 		}
 	}
+
+	/**
+	 * Verifica una condición de validez genérica.
+	 *
+	 * @param condicionValida {@code true} si el dato es válido
+	 * @param mensaje         mensaje de error si no lo es
+	 * @throws DatoInvalidoException si la condición no se cumple
+	 */
+	public static void verificar(boolean condicionValida, String mensaje) throws DatoInvalidoException {
+		if (!condicionValida) {
+			throw new DatoInvalidoException(mensaje);
+		}
+	}
+
+	/**
+	 * Verifica que no exista un conflicto con el estado actual de los datos.
+	 *
+	 * @param hayConflicto {@code true} si la operación chocaría con los datos
+	 * @param mensaje      mensaje de error si hay conflicto
+	 * @throws ConflictoNegocioException si hay conflicto
+	 */
+	public static void verificarSinConflicto(boolean hayConflicto, String mensaje) throws ConflictoNegocioException {
+		if (hayConflicto) {
+			throw new ConflictoNegocioException(mensaje);
+		}
+	}
 }
