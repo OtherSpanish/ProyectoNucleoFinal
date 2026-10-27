@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import unbosque.edu.co.aulasync.model.Curso;
 import unbosque.edu.co.aulasync.model.Docente;
 import unbosque.edu.co.aulasync.model.FranjaDocente;
 import unbosque.edu.co.aulasync.model.Seccion;
+import unbosque.edu.co.aulasync.model.SesionHorario;
 import unbosque.edu.co.aulasync.motor.AulaMotor;
 import unbosque.edu.co.aulasync.motor.DocenteMotor;
 import unbosque.edu.co.aulasync.motor.GeneradorFranjas;
@@ -31,6 +33,7 @@ import unbosque.edu.co.aulasync.motor.TipoAula;
 import unbosque.edu.co.aulasync.repository.AulaRepository;
 import unbosque.edu.co.aulasync.repository.DocenteRepository;
 import unbosque.edu.co.aulasync.repository.SeccionRepository;
+import unbosque.edu.co.aulasync.repository.SesionHorarioRepository;
 
 /**
  * Servicio que conecta la persistencia con el motor de generación de horarios.
@@ -54,6 +57,7 @@ public class MotorHorarioService {
 	private final SeccionRepository seccionRepo;
 	private final DocenteRepository docenteRepo;
 	private final AulaRepository aulaRepo;
+	private final SesionHorarioRepository sesionHorarioRepo;
 
 	/**
 	 * Crea el servicio con los repositorios que necesita.
@@ -61,11 +65,14 @@ public class MotorHorarioService {
 	 * @param seccionRepo repositorio de secciones
 	 * @param docenteRepo repositorio de docentes
 	 * @param aulaRepo    repositorio de aulas
+	 * @param sesionHorarioRepo repositorio del horario guardado
 	 */
-	public MotorHorarioService(SeccionRepository seccionRepo, DocenteRepository docenteRepo, AulaRepository aulaRepo) {
+	public MotorHorarioService(SeccionRepository seccionRepo, DocenteRepository docenteRepo, AulaRepository aulaRepo,
+			SesionHorarioRepository sesionHorarioRepo) {
 		this.seccionRepo = seccionRepo;
 		this.docenteRepo = docenteRepo;
 		this.aulaRepo = aulaRepo;
+		this.sesionHorarioRepo = sesionHorarioRepo;
 	}
 
 	/**
@@ -143,6 +150,45 @@ public class MotorHorarioService {
 		}
 
 		return new RespuestaGeneracionDto(ubicadas, sinUbicar);
+	}
+
+	/**
+	 * Ejecuta el motor igual que {@link #generarHorario()} pero guarda el
+	 * resultado: reemplaza el horario guardado por una sesión persistida por cada
+	 * sesión semanal de cada sección, ubicada o no. Sobre ese horario guardado
+	 * trabaja el Comité con drag and drop.
+	 */
+	@Transactional
+	public void generarYGuardarHorario() {
+		Map<Integer, Seccion> seccionPorClave = new HashMap<>();
+		List<Sesion> sesiones = construirSesiones(seccionPorClave);
+		Map<Integer, DocenteMotor> docentes = construirDocentes(new HashMap<>());
+		List<AulaMotor> aulas = construirAulas(new HashMap<>());
+
+		MotorHorario.Resultado r = new MotorHorario(sesiones, docentes, aulas, GeneradorFranjas.Parametros.POR_DEFECTO)
+				.generar();
+
+		Map<Long, Aula> aulaPorId = aulaRepo.findAll().stream().collect(Collectors.toMap(Aula::getId, a -> a));
+
+		List<SesionHorario> nuevas = new ArrayList<>();
+		for (Sesion s : r.getUbicadas()) {
+			SesionHorario sh = new SesionHorario();
+			sh.setSeccion(seccionPorClave.get(s.getClaveCurso()));
+			sh.setDia(s.getFranja().getDia());
+			sh.setHoraInicio(s.getFranja().getHoraInicio());
+			sh.setAula(aulaPorId.get((long) s.getAula().getId()));
+			nuevas.add(sh);
+		}
+		for (Sesion s : r.getSinUbicar()) {
+			SesionHorario sh = new SesionHorario();
+			sh.setSeccion(seccionPorClave.get(s.getClaveCurso()));
+			sh.setCausa(s.getCausaSinUbicar() == null ? "SIN_UBICAR" : s.getCausaSinUbicar().name());
+			nuevas.add(sh);
+		}
+
+		sesionHorarioRepo.deleteAll();
+		sesionHorarioRepo.flush();
+		sesionHorarioRepo.saveAll(nuevas);
 	}
 
 	// ---------- Construcción de objetos del motor ----------
@@ -230,7 +276,7 @@ public class MotorHorarioService {
 	 * @return tope de horas semanales; si la dedicación es nula o desconocida, el
 	 *         de un cuarto de tiempo
 	 */
-	private int topeHoras(String dedicacion) {
+	public static int topeHoras(String dedicacion) {
 		if (dedicacion == null) {
 			return TOPE_UN_CUARTO;
 		}
