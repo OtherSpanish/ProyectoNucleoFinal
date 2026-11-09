@@ -5,9 +5,9 @@ package unbosque.edu.co.aulasync.exception;
  * valor fuera de rango, etc.).
  *
  * <p>
- * No se lanza directamente: cada regla incumplida tiene su propia subclase, y
- * todas se lanzan únicamente desde {@link LanzadorException}. El
- * {@link GlobalExceptionHandler} las traduce en una respuesta HTTP 400.
+ * No se lanza directamente: cada regla incumplida tiene su propia subclase.
+ * Todas se lanzan y se manejan únicamente en {@link LanzadorException}, que
+ * las traduce en una respuesta HTTP 400.
  * </p>
  *
  * @version 1.0

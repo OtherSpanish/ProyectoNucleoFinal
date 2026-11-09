@@ -2,13 +2,13 @@ package unbosque.edu.co.aulasync.exception;
 
 /**
  * Clase base de las excepciones por operaciones válidas que chocan con el
- * estado actual de los datos (por ejemplo, eliminar un registro del que otros
- * dependen).
+ * estado actual de los datos (por ejemplo, un correo repetido o eliminar un
+ * registro del que otros dependen).
  *
  * <p>
- * No se lanza directamente: cada conflicto tiene su propia subclase, lanzada
- * únicamente desde {@link LanzadorException}. El {@link GlobalExceptionHandler}
- * las traduce en una respuesta HTTP 409.
+ * No se lanza directamente: cada conflicto tiene su propia subclase. Todas se
+ * lanzan y se manejan únicamente en {@link LanzadorException}, que las
+ * traduce en una respuesta HTTP 409.
  * </p>
  *
  * @version 1.0

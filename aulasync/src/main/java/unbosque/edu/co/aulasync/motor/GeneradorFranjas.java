@@ -5,92 +5,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Genera las franjas candidatas (día y hora de inicio) en las que se puede
- * ubicar una sesión, a partir de la franja horaria general parametrizable (RD7,
- * RNF3).
+ * Genera las franjas candidatas (día, hora, sede) donde cabe una sesión de una
+ * duración dada, según las horas habilitadas de cada sede.
+ *
+ * <p>
+ * Las franjas salen ordenadas por día (lunes a sábado), luego por hora y luego
+ * por sede, para que en caso de empate el motor prefiera la más temprana. Una
+ * sesión nunca cruza un hueco de la sede (por ejemplo, el almuerzo).
+ * </p>
+ *
+ * @version 2.0
  */
-public class GeneradorFranjas {
+public final class GeneradorFranjas {
 
-	/**
-	 * Parámetros de la franja horaria general: hora de apertura, cierre entre
-	 * semana y en sábado, y horario de almuerzo en el que no hay clases.
-	 */
-	public static class Parametros {
+	private static final DayOfWeek[] DIAS_HABILES = { DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+			DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY };
 
-		/**
-		 * Valores por defecto: lunes a viernes 7:00 a 22:00, sábado 7:00 a 13:00, sin
-		 * clases de 12:00 a 13:00.
-		 */
-		public static final Parametros POR_DEFECTO = new Parametros(7, 22, 13, 12, 13);
+	private static final int ULTIMA_HORA = 23;
 
-		private final int apertura;
-		private final int cierreSemana;
-		private final int cierreSabado;
-		private final int inicioAlmuerzo;
-		private final int finAlmuerzo;
-
-		/**
-		 * Crea los parámetros de la franja general.
-		 *
-		 * @param apertura       hora de apertura (todos los días)
-		 * @param cierreSemana   hora de cierre de lunes a viernes
-		 * @param cierreSabado   hora de cierre del sábado
-		 * @param inicioAlmuerzo hora en que empieza el receso sin clases
-		 * @param finAlmuerzo    hora en que termina el receso sin clases
-		 */
-		public Parametros(int apertura, int cierreSemana, int cierreSabado, int inicioAlmuerzo, int finAlmuerzo) {
-			this.apertura = apertura;
-			this.cierreSemana = cierreSemana;
-			this.cierreSabado = cierreSabado;
-			this.inicioAlmuerzo = inicioAlmuerzo;
-			this.finAlmuerzo = finAlmuerzo;
-		}
-
-		/** @return hora de apertura */
-		public int getApertura() {
-			return apertura;
-		}
-
-		/** @return hora de cierre de lunes a viernes */
-		public int getCierreSemana() {
-			return cierreSemana;
-		}
-
-		/** @return hora de cierre del sábado */
-		public int getCierreSabado() {
-			return cierreSabado;
-		}
-
-		/** @return hora en que empieza el receso sin clases */
-		public int getInicioAlmuerzo() {
-			return inicioAlmuerzo;
-		}
-
-		/** @return hora en que termina el receso sin clases */
-		public int getFinAlmuerzo() {
-			return finAlmuerzo;
-		}
+	private GeneradorFranjas() {
+		// Clase utilitaria: no se instancia.
 	}
 
 	/**
-	 * Genera todas las franjas posibles para una sesión de la duración dada,
-	 * descartando las que se pasan del cierre o tocan el receso del almuerzo.
+	 * Genera todas las franjas posibles para una duración.
 	 *
-	 * @param duracion duración de la sesión en horas
-	 * @param p        parámetros de la franja general
-	 * @return franjas candidatas, ordenadas por día y hora
+	 * @param duracion duración de la sesión, en horas.
+	 * @param sedes    sedes con sus horas habilitadas.
+	 * @return franjas candidatas ordenadas por día, hora y sede.
 	 */
-	public static List<Franja> generar(int duracion, Parametros p) {
+	public static List<Franja> generar(int duracion, List<SedeMotor> sedes) {
 		List<Franja> franjas = new ArrayList<>();
-		for (DayOfWeek d : DayOfWeek.values()) {
-			if (d == DayOfWeek.SUNDAY) {
-				continue;
-			}
-			int cierre = (d == DayOfWeek.SATURDAY) ? p.getCierreSabado() : p.getCierreSemana();
-			for (int h = p.getApertura(); h + duracion <= cierre; h++) {
-				boolean tocaAlmuerzo = h < p.getFinAlmuerzo() && h + duracion > p.getInicioAlmuerzo();
-				if (!tocaAlmuerzo) {
-					franjas.add(new Franja(d, h));
+		for (DayOfWeek dia : DIAS_HABILES) {
+			for (int hora = 0; hora + duracion <= ULTIMA_HORA + 1; hora++) {
+				for (SedeMotor sede : sedes) {
+					if (sede.permite(dia, hora, duracion)) {
+						franjas.add(new Franja(dia, hora, sede.getId()));
+					}
 				}
 			}
 		}

@@ -2,144 +2,242 @@ package unbosque.edu.co.aulasync.motor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.DayOfWeek;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import unbosque.edu.co.aulasync.model.TipoAula;
+
+/**
+ * Pruebas unitarias de {@link MotorHorario}. No usan base de datos ni Spring.
+ */
 class MotorHorarioTest {
 
-	@Test
-	void casoDelInforme() {
-		// id, claveCurso, docente, grupo, duración, tipo aula, capacidad
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44), // EstDatos s1 (Doc A, Grupo
-																							// X)
-				new Sesion(2, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44), // EstDatos s2
-				new Sesion(3, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44), // Cálculo s1
-				new Sesion(4, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44), // Cálculo s2
-				new Sesion(5, 3, 2, 10, 2, TipoAula.CONVENCIONAL, 44), // BD1 s1 (Doc B)
-				new Sesion(6, 3, 2, 10, 2, TipoAula.CONVENCIONAL, 44), // BD1 s2
-				new Sesion(7, 4, 2, 20, 4, TipoAula.SALA_COMPUTO, 44)); // IngSoft (Grupo Y)
-		Map<Integer, DocenteMotor> docs = Map.of(1, new DocenteMotor(1, 40, null), 2, new DocenteMotor(2, 40, null));
-		List<AulaMotor> aulas = List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL),
-				new AulaMotor(2, 45, TipoAula.SALA_COMPUTO));
+	private static final long USAQUEN = 1L;
+	private static final long CHIA = 2L;
+	private static final DayOfWeek[] ENTRE_SEMANA = { DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+			DayOfWeek.THURSDAY, DayOfWeek.FRIDAY };
 
-		MotorHorario.Resultado r = new MotorHorario(ses, docs, aulas, GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
+	private List<SedeMotor> sedes;
+	private List<AulaMotor> aulas;
 
-		assertTrue(r.getSinUbicar().isEmpty());
-		assertEquals(7, r.getUbicadas().size());
-
-		// RD6: ningún curso con dos sesiones el mismo día
-		Map<Integer, Set<DayOfWeek>> diasPorCurso = new HashMap<>();
-		for (Sesion s : ses) {
-			Set<DayOfWeek> dias = diasPorCurso.get(s.getClaveCurso());
-			if (dias == null) {
-				dias = new HashSet<>();
-				diasPorCurso.put(s.getClaveCurso(), dias);
-			}
-			assertTrue(dias.add(s.getFranja().getDia()), "curso repite día");
+	@BeforeEach
+	void preparar() {
+		SedeMotor usaquen = new SedeMotor(USAQUEN, "Usaquén", false, 0);
+		SedeMotor chia = new SedeMotor(CHIA, "Chía", true, 2);
+		for (DayOfWeek dia : ENTRE_SEMANA) {
+			usaquen.habilitar(dia, 7, 13);
+			usaquen.habilitar(dia, 14, 22);
+			chia.habilitar(dia, 8, 12);
+			chia.habilitar(dia, 13, 15);
 		}
+		usaquen.habilitar(DayOfWeek.SATURDAY, 7, 13);
+		sedes = new ArrayList<>(Arrays.asList(usaquen, chia));
 
-		// RD1/RD2: sin traslapes entre sesiones del mismo docente o grupo
-		for (int i = 0; i < ses.size(); i++) {
-			for (int j = i + 1; j < ses.size(); j++) {
-				Sesion a = ses.get(i);
-				Sesion b = ses.get(j);
-				if (a.getDocenteId() == b.getDocenteId() || a.getGrupoId() == b.getGrupoId()) {
-					assertFalse(
-							Franja.traslapan(a.getFranja(), a.getDuracionHoras(), b.getFranja(), b.getDuracionHoras()));
-				}
-			}
+		aulas = new ArrayList<>();
+		aulas.add(new AulaMotor(1L, "U-101", 40, TipoAula.CONVENCIONAL, USAQUEN));
+		aulas.add(new AulaMotor(2L, "U-102", 40, TipoAula.CONVENCIONAL, USAQUEN));
+		aulas.add(new AulaMotor(3L, "LAB-1", 30, TipoAula.SALA_COMPUTO, USAQUEN));
+		aulas.add(new AulaMotor(4L, "C-101", 40, TipoAula.CONVENCIONAL, CHIA));
+	}
+
+	// ------------------------------------------------------------------
+	// Pruebas
+	// ------------------------------------------------------------------
+
+	@Test
+	void sesionesDelGrupoEnDiasDistintosTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 3, false, 1L, 3, 2, TipoAula.CONVENCIONAL, 20);
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
+
+		assertEquals(3, resultado.getUbicadas().size());
+		Set<DayOfWeek> dias = EnumSet.noneOf(DayOfWeek.class);
+		for (Sesion sesion : resultado.getUbicadas()) {
+			dias.add(sesion.getFranja().getDia());
+		}
+		assertEquals(3, dias.size());
+	}
+
+	@Test
+	void respetaAlmuerzoTest() {
+		DocenteMotor docente = new DocenteMotor(1L, 40);
+		docente.habilitar(DayOfWeek.MONDAY, 10, 18);
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 3, false, 1L, 1, 4, TipoAula.CONVENCIONAL, 20);
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docente);
+
+		assertEquals(1, resultado.getUbicadas().size());
+		assertEquals(14, resultado.getUbicadas().get(0).getFranja().getHoraInicio());
+	}
+
+	@Test
+	void choqueDocenteTest() {
+		List<Sesion> sesiones = new ArrayList<>();
+		sesiones.addAll(grupo(1L, 10L, 1, 5, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20));
+		sesiones.addAll(grupo(2L, 20L, 1, 8, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20));
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteSoloLunes(1L));
+
+		assertEquals(1, resultado.getUbicadas().size());
+		assertEquals(1, resultado.getSinUbicar().size());
+		assertTrue(resultado.getSinUbicar().get(0).getDesgloseCausas().containsKey(MotivoRechazo.CHOQUE_DOCENTE));
+	}
+
+	@Test
+	void mismoBloqueNoSeCruzaTest() {
+		List<Sesion> sesiones = new ArrayList<>();
+		sesiones.addAll(grupo(1L, 10L, 1, 3, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20));
+		sesiones.addAll(grupo(2L, 20L, 1, 4, false, 2L, 1, 2, TipoAula.CONVENCIONAL, 20));
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteSoloLunes(1L), docenteSoloLunes(2L));
+
+		assertEquals(1, resultado.getSinUbicar().size());
+		assertTrue(resultado.getSinUbicar().get(0).getDesgloseCausas().containsKey(MotivoRechazo.CHOQUE_BLOQUE));
+	}
+
+	@Test
+	void distintoNumeroDeGrupoPuedeCruzarseTest() {
+		List<Sesion> sesiones = new ArrayList<>();
+		sesiones.addAll(grupo(1L, 10L, 1, 3, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20));
+		sesiones.addAll(grupo(2L, 20L, 2, 3, false, 2L, 1, 2, TipoAula.CONVENCIONAL, 20));
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteSoloLunes(1L), docenteSoloLunes(2L));
+
+		assertEquals(2, resultado.getUbicadas().size());
+		Sesion a = resultado.getUbicadas().get(0);
+		Sesion b = resultado.getUbicadas().get(1);
+		assertEquals(a.getFranja().getHoraInicio(), b.getFranja().getHoraInicio());
+		assertNotEquals(a.getAula().getId(), b.getAula().getId());
+	}
+
+	@Test
+	void mismaMateriaDistintoGrupoPuedeCruzarseTest() {
+		List<Sesion> sesiones = new ArrayList<>();
+		sesiones.addAll(grupo(1L, 10L, 1, 3, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20));
+		sesiones.addAll(grupo(2L, 10L, 2, 3, false, 2L, 1, 2, TipoAula.CONVENCIONAL, 20));
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteSoloLunes(1L), docenteSoloLunes(2L));
+
+		assertEquals(2, resultado.getUbicadas().size());
+	}
+
+	@Test
+	void nucleoPrimerSemestreVaAChiaEnSusDiasTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 1, true, 1L, 2, 2, TipoAula.CONVENCIONAL, 20);
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
+
+		assertEquals(2, resultado.getUbicadas().size());
+		Set<DayOfWeek> dias = EnumSet.noneOf(DayOfWeek.class);
+		for (Sesion sesion : resultado.getUbicadas()) {
+			assertEquals(CHIA, sesion.getFranja().getSedeId());
+			dias.add(sesion.getFranja().getDia());
+		}
+		assertEquals(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), dias);
+		assertTrue(resultado.getAvisos().isEmpty());
+	}
+
+	@Test
+	void propiaPrimerSemestreVaAUsaquenOtrosDiasTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 1, false, 1L, 1, 2, TipoAula.CONVENCIONAL, 20);
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
+
+		Franja franja = resultado.getUbicadas().get(0).getFranja();
+		assertEquals(USAQUEN, franja.getSedeId());
+		assertEquals(DayOfWeek.TUESDAY, franja.getDia());
+	}
+
+	@Test
+	void otroSemestreNoVaAChiaTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 3, false, 1L, 2, 2, TipoAula.CONVENCIONAL, 20);
+
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
+
+		for (Sesion sesion : resultado.getUbicadas()) {
+			assertEquals(USAQUEN, sesion.getFranja().getSedeId());
 		}
 	}
 
 	@Test
-	void docenteNoDisponible() {
-		// Solo disponible el lunes 7-9: caben una sesión, la otra no
-		Map<DayOfWeek, Set<Integer>> disp = Map.of(DayOfWeek.MONDAY, Set.of(7, 8));
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(2, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44));
+	void sinAulaTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 3, false, 1L, 1, 2, TipoAula.SALA_COMPUTO, 50);
 
-		MotorHorario.Resultado r = new MotorHorario(ses, Map.of(1, new DocenteMotor(1, 40, disp)),
-				List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL)), GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
 
-		assertEquals(1, r.getUbicadas().size());
-		assertEquals(1, r.getSinUbicar().size());
-		assertEquals(MotorHorario.Motivo.DOCENTE_NO_DISPONIBLE, r.getSinUbicar().get(0).getCausaSinUbicar());
+		assertEquals(1, resultado.getSinUbicar().size());
+		assertEquals(MotivoRechazo.SIN_AULA, resultado.getSinUbicar().get(0).getCausaSinUbicar());
 	}
 
 	@Test
-	void sinAula() {
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.SALA_COMPUTO, 44));
+	void cargaDocenteTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 3, false, 1L, 3, 2, TipoAula.CONVENCIONAL, 20);
 
-		MotorHorario.Resultado r = new MotorHorario(ses, Map.of(1, new DocenteMotor(1, 40, null)),
-				List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL)), GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 4));
 
-		assertEquals(1, r.getSinUbicar().size());
-		assertEquals(MotorHorario.Motivo.SIN_AULA, r.getSinUbicar().get(0).getCausaSinUbicar());
+		assertEquals(2, resultado.getUbicadas().size());
+		assertEquals(MotivoRechazo.CARGA_DOCENTE, resultado.getSinUbicar().get(0).getCausaSinUbicar());
 	}
 
 	@Test
-	void cargaDocenteExcedida() {
-		// Tope de 2 h semanales, dos sesiones de 2 h
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(2, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44));
+	void avisoDiasChiaIncompletosTest() {
+		List<Sesion> sesiones = grupo(1L, 10L, 1, 1, true, 1L, 1, 2, TipoAula.CONVENCIONAL, 20);
 
-		MotorHorario.Resultado r = new MotorHorario(ses, Map.of(1, new DocenteMotor(1, 2, null)),
-				List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL)), GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
+		MotorHorario.Resultado resultado = ejecutar(sesiones, docenteTodaLaSemana(1L, 40));
 
-		assertEquals(1, r.getUbicadas().size());
-		assertEquals(MotorHorario.Motivo.CARGA_DOCENTE, r.getSinUbicar().get(0).getCausaSinUbicar());
+		assertEquals(1, resultado.getAvisos().size());
+		assertFalse(resultado.getAvisos().get(0).isBlank());
 	}
 
 	@Test
-	void repartePorDias() {
-		// Un grupo con 4 sesiones de cursos y docentes distintos: deben caer en 4 días
-		// distintos
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 40),
-				new Sesion(2, 2, 2, 10, 2, TipoAula.CONVENCIONAL, 40),
-				new Sesion(3, 3, 3, 10, 2, TipoAula.CONVENCIONAL, 40),
-				new Sesion(4, 4, 4, 10, 2, TipoAula.CONVENCIONAL, 40));
-		Map<Integer, DocenteMotor> docs = Map.of(1, new DocenteMotor(1, 40, null), 2, new DocenteMotor(2, 40, null), 3,
-				new DocenteMotor(3, 40, null), 4, new DocenteMotor(4, 40, null));
+	void diasPrimerSemestrePorBloqueTest() {
+		assertEquals(Arrays.asList(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+				MotorHorario.calcularDiasPrimerSemestre(1, 2));
+		assertEquals(Arrays.asList(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+				MotorHorario.calcularDiasPrimerSemestre(2, 2));
+		assertEquals(Arrays.asList(DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+				MotorHorario.calcularDiasPrimerSemestre(3, 2));
+	}
 
-		MotorHorario.Resultado r = new MotorHorario(ses, docs, List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL)),
-				GeneradorFranjas.Parametros.POR_DEFECTO).generar();
+	// ------------------------------------------------------------------
+	// Auxiliares
+	// ------------------------------------------------------------------
 
-		assertEquals(4, r.getUbicadas().size());
-		Set<DayOfWeek> dias = new HashSet<>();
-		for (Sesion s : ses) {
-			dias.add(s.getFranja().getDia());
+	private MotorHorario.Resultado ejecutar(List<Sesion> sesiones, DocenteMotor... docentes) {
+		return new MotorHorario(sesiones, Arrays.asList(docentes), sedes, aulas).generar();
+	}
+
+	private List<Sesion> grupo(long grupoId, long cursoId, int numeroGrupo, int semestre, boolean nucleo,
+			long docenteId, int cantidad, int duracion, TipoAula tipo, int estudiantes) {
+		List<Sesion> sesiones = new ArrayList<>();
+		for (int i = 1; i <= cantidad; i++) {
+			sesiones.add(new Sesion(grupoId, i, cursoId, "C" + cursoId, numeroGrupo, semestre, nucleo, docenteId,
+					duracion, tipo, estudiantes));
 		}
-		assertEquals(4, dias.size(), "las sesiones del grupo deben repartirse en 4 días");
-		assertFalse(dias.contains(DayOfWeek.SATURDAY));
+		return sesiones;
 	}
 
-	@Test
-	void desgloseDeCausas() {
-		// Docente disponible solo el lunes 7-9; dos sesiones del mismo curso
-		Map<DayOfWeek, Set<Integer>> disp = Map.of(DayOfWeek.MONDAY, Set.of(7, 8));
-		List<Sesion> ses = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 40),
-				new Sesion(2, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 40));
+	private DocenteMotor docenteTodaLaSemana(long id, int tope) {
+		DocenteMotor docente = new DocenteMotor(id, tope);
+		for (DayOfWeek dia : ENTRE_SEMANA) {
+			docente.habilitar(dia, 7, 22);
+		}
+		docente.habilitar(DayOfWeek.SATURDAY, 7, 13);
+		return docente;
+	}
 
-		MotorHorario.Resultado r = new MotorHorario(ses, Map.of(1, new DocenteMotor(1, 40, disp)),
-				List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL)), GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
-
-		assertEquals(1, r.getSinUbicar().size());
-		Sesion sin = r.getSinUbicar().get(0);
-		assertEquals(MotorHorario.Motivo.DOCENTE_NO_DISPONIBLE, sin.getCausaSinUbicar());
-		assertEquals(63, sin.getDesgloseCausas().get(MotorHorario.Motivo.DOCENTE_NO_DISPONIBLE));
-		assertEquals(1, sin.getDesgloseCausas().get(MotorHorario.Motivo.CHOQUE_DOCENTE));
+	private DocenteMotor docenteSoloLunes(long id) {
+		DocenteMotor docente = new DocenteMotor(id, 40);
+		docente.habilitar(DayOfWeek.MONDAY, 7, 9);
+		return docente;
 	}
 }

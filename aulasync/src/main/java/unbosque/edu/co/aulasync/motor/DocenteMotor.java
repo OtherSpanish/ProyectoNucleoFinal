@@ -1,64 +1,85 @@
 package unbosque.edu.co.aulasync.motor;
 
 import java.time.DayOfWeek;
-import java.util.Map;
-import java.util.Set;
 
 /**
- * Docente tal como lo ve el motor: su tope de horas semanales según la
- * dedicación (RD5) y su disponibilidad por día y hora (RD4).
+ * Docente tal como lo ve el motor: tope de horas semanales y disponibilidad
+ * por hora de cada día.
+ *
+ * <p>
+ * Un docente sin franjas habilitadas no está disponible en ninguna hora.
+ * </p>
+ *
+ * @version 2.0
  */
 public class DocenteMotor {
 
-	private final int id;
+	private static final int DIAS = 7;
+	private static final int HORAS = 24;
+
+	private final long id;
 	private final int topeHorasSemanales;
-	private final Map<DayOfWeek, Set<Integer>> horasDisponibles;
+	private final boolean[][] disponible = new boolean[DIAS][HORAS];
 
 	/**
-	 * Crea un docente del motor.
+	 * Crea un docente sin disponibilidad.
 	 *
-	 * @param id                 identificador del docente
-	 * @param topeHorasSemanales máximo de horas de clase por semana según su
-	 *                           dedicación
-	 * @param horasDisponibles   horas disponibles por día, o {@code null} si está
-	 *                           siempre disponible
+	 * @param id                 id del docente.
+	 * @param topeHorasSemanales tope de su dedicación.
 	 */
-	public DocenteMotor(int id, int topeHorasSemanales, Map<DayOfWeek, Set<Integer>> horasDisponibles) {
+	public DocenteMotor(long id, int topeHorasSemanales) {
 		this.id = id;
 		this.topeHorasSemanales = topeHorasSemanales;
-		this.horasDisponibles = horasDisponibles;
 	}
 
 	/**
-	 * Indica si el docente está disponible durante toda la sesión (RD4).
+	 * Marca como disponible el intervalo {@code [inicio, fin)} de un día.
 	 *
-	 * @param f        franja de inicio de la sesión
-	 * @param duracion duración de la sesión en horas
-	 * @return {@code true} si todas las horas de la sesión están dentro de su
-	 *         disponibilidad
+	 * @param dia    día de la semana.
+	 * @param inicio hora de inicio (incluida).
+	 * @param fin    hora de fin (excluida).
 	 */
-	public boolean estaDisponibleEn(Franja f, int duracion) {
-		if (horasDisponibles == null) {
-			return true;
+	public void habilitar(DayOfWeek dia, int inicio, int fin) {
+		int d = dia.getValue() - 1;
+		for (int h = inicio; h < fin && h < HORAS; h++) {
+			if (h >= 0) {
+				disponible[d][h] = true;
+			}
 		}
-		Set<Integer> horas = horasDisponibles.get(f.getDia());
-		if (horas == null) {
+	}
+
+	/**
+	 * Indica si el docente puede dictar una sesión que empieza en la franja y
+	 * dura {@code duracion} horas.
+	 *
+	 * @param franja   franja candidata.
+	 * @param duracion duración de la sesión.
+	 * @return {@code true} si todas las horas de la sesión están disponibles.
+	 */
+	public boolean estaDisponibleEn(Franja franja, int duracion) {
+		int d = franja.getDia().getValue() - 1;
+		int inicio = franja.getHoraInicio();
+		if (inicio < 0 || inicio + duracion > HORAS) {
 			return false;
 		}
-		for (int h = f.getHoraInicio(); h < f.getHoraInicio() + duracion; h++) {
-			if (!horas.contains(h)) {
+		for (int h = inicio; h < inicio + duracion; h++) {
+			if (!disponible[d][h]) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	/** @return identificador del docente */
-	public int getId() {
+	/**
+	 * @return id del docente.
+	 */
+	public long getId() {
 		return id;
 	}
 
-	/** @return máximo de horas de clase por semana */
+	/**
+	 * @return tope de horas semanales.
+	 */
 	public int getTopeHorasSemanales() {
 		return topeHorasSemanales;
 	}
