@@ -1,0 +1,112 @@
+<h2>Grupos e inscritos</h2>
+<p class="ayuda">
+  Cada grupo tiene un curso, un número, un docente con la especialidad del curso y sus estudiantes inscritos.
+  Un grupo se abre con 10 inscritos y admite hasta 30; solo los grupos abiertos entran al horario.
+  <ng-container *ngIf="!puedeEditar()">Tu rol puede gestionar inscripciones, pero no crear grupos.</ng-container>
+</p>
+
+<app-alerta [error]="error" [ok]="ok"></app-alerta>
+
+<div class="barra">
+  <label class="inline">Semestre
+    <select name="fsem" [(ngModel)]="filtroSemestre" (change)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let s of semestres" [ngValue]="s.id">{{ s.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Curso
+    <select name="fcur" [(ngModel)]="filtroCurso" (change)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let c of cursos" [ngValue]="c.id">{{ c.codigo }} – {{ c.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Docente
+    <select name="fdoc" [(ngModel)]="filtroDocente" (change)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let d of docentes" [ngValue]="d.id">{{ d.usuario.nombre }}</option>
+    </select>
+  </label>
+  <button type="button" class="primario" *ngIf="puedeEditar()" (click)="nuevo()">Nuevo grupo</button>
+</div>
+
+<form class="card" *ngIf="mostrarForm" (ngSubmit)="guardar()">
+  <h3>{{ editandoId === null ? 'Nuevo grupo' : 'Editar grupo' }}</h3>
+  <div class="fila-form">
+    <label class="ancho">Curso
+      <select name="curso" [(ngModel)]="cursoId" required>
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let c of cursos" [ngValue]="c.id">S{{ c.semestreNumero }} · {{ c.codigo }} – {{ c.nombre }}</option>
+      </select>
+    </label>
+    <label>Número de grupo (1–20)
+      <input name="numero" type="number" min="1" max="20" [(ngModel)]="numero" required>
+    </label>
+    <label class="ancho">Docente (con la especialidad del curso)
+      <select name="docente" [(ngModel)]="docenteId" required>
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let d of docentesAptos()" [ngValue]="d.id">{{ d.usuario.nombre }}</option>
+      </select>
+    </label>
+  </div>
+  <p class="ayuda" *ngIf="cursoId !== null && docentesAptos().length === 0">
+    Ningún docente tiene la especialidad de este curso. Asígnala en «Docentes».
+  </p>
+  <p class="ayuda">El back valida además el tope de horas del docente y que su disponibilidad alcance para el curso.</p>
+  <button type="submit" class="primario">Guardar</button>
+  <button type="button" (click)="mostrarForm = false">Cancelar</button>
+</form>
+
+<p class="vacio" *ngIf="grupos.length === 0">No hay grupos{{ filtroSemestre || filtroCurso || filtroDocente ? ' con esos filtros' : '' }}.</p>
+<table *ngIf="grupos.length > 0">
+  <thead><tr><th>Sem.</th><th>Curso</th><th>Grupo</th><th>Docente</th><th>Inscritos</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+    <tr *ngFor="let g of grupos" [class.fila-activa]="panel?.grupo?.id === g.id">
+      <td>{{ g.semestreNumero }}</td>
+      <td>{{ g.cursoCodigo }} – {{ g.cursoNombre }}</td>
+      <td>{{ g.numero }}</td>
+      <td>{{ g.docenteNombre }}</td>
+      <td>{{ g.cantidadEstudiantes }}</td>
+      <td><span class="chip" [class.ok]="g.abierto" [class.pendiente]="!g.abierto">{{ g.abierto ? 'Abierto' : 'Sin abrir' }}</span></td>
+      <td class="acciones">
+        <button type="button" (click)="abrirInscritos(g)">Inscritos</button>
+        <button type="button" *ngIf="puedeEditar()" (click)="editar(g)">Editar</button>
+        <button type="button" class="peligro" *ngIf="puedeEditar()" (click)="eliminar(g)">Eliminar</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card" *ngIf="panel">
+  <h3>Inscritos en {{ panel.grupo.cursoCodigo }} · Grupo {{ panel.grupo.numero }}</h3>
+  <p class="resumen">
+    <strong>{{ panel.estudiantes.length }}</strong> inscritos ·
+    mínimo para abrir: {{ panel.minimoInscritos }}
+    <ng-container *ngIf="panel.faltantesParaAbrir > 0">(faltan <strong>{{ panel.faltantesParaAbrir }}</strong>)</ng-container> ·
+    cupos disponibles: {{ panel.cuposDisponibles }} de {{ panel.maximoInscritos }}
+  </p>
+
+  <div class="fila-form">
+    <label>Buscar estudiante
+      <input name="buscarEst" [(ngModel)]="buscarEst" placeholder="Código o nombre">
+    </label>
+    <label class="ancho">Estudiante a inscribir
+      <select name="estElegido" [(ngModel)]="estudianteElegido">
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let e of candidatos()" [ngValue]="e.id">{{ e.codigo }} – {{ e.nombre }}</option>
+      </select>
+    </label>
+    <button type="button" class="primario" (click)="inscribir()" [disabled]="estudianteElegido === null || panel.cuposDisponibles <= 0">Inscribir</button>
+  </div>
+
+  <p class="vacio" *ngIf="panel.estudiantes.length === 0">Aún no hay estudiantes inscritos.</p>
+  <table *ngIf="panel.estudiantes.length > 0">
+    <thead><tr><th>Código</th><th>Nombre</th><th>Correo</th><th></th></tr></thead>
+    <tbody>
+      <tr *ngFor="let e of panel.estudiantes">
+        <td>{{ e.codigo }}</td><td>{{ e.nombre }}</td><td>{{ e.correo }}</td>
+        <td class="acciones"><button type="button" class="peligro" (click)="retirar(e)">Retirar</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <button type="button" (click)="cerrarInscritos()">Cerrar</button>
+</div>

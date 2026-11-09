@@ -1,6 +1,10 @@
 <h2>Bienvenido, {{ usuario()?.nombre }}</h2>
 <p class="ayuda">Rol: {{ rol() }}. Estas son las funciones disponibles para ti:</p>
 
+<p class="resumen" *ngIf="resumen() as r">
+  Horario guardado: <strong>{{ r.ubicadas }}</strong> sesiones ubicadas · <strong>{{ r.sinUbicar }}</strong> sin ubicar.
+</p>
+
 <div class="tarjetas">
   <a class="card tarjeta" *ngFor="let a of accesos()" [routerLink]="'/' + a.ruta">
     <h3>{{ a.etiqueta }}</h3>

@@ -1,0 +1,80 @@
+<h2>Generar horario</h2>
+<p class="ayuda">
+  El motor ubica las sesiones de los grupos abiertos respetando disponibilidad docente, topes de horas, sedes, aulas y choques.
+  Puedes previsualizar sin guardar, o generar y guardar el horario (reemplaza el anterior).
+</p>
+
+<div class="barra">
+  <button type="button" (click)="previsualizar()" [disabled]="trabajando">Previsualizar propuesta</button>
+  <button type="button" class="primario" (click)="generarYGuardar()" [disabled]="trabajando">Generar y guardar horario</button>
+  <button type="button" (click)="sincronizar()" [disabled]="trabajando"
+          title="Aplica al horario guardado los cambios hechos en cursos, grupos, aulas, sedes y disponibilidad">
+    Sincronizar con datos maestros
+  </button>
+  <span class="ayuda" *ngIf="trabajando">Trabajando…</span>
+</div>
+
+<app-alerta [error]="error" [ok]="ok"></app-alerta>
+
+<div class="card" *ngIf="sync && sync.hayHorario && sync.cambios.length > 0">
+  <h3>Cambios aplicados por la sincronización</h3>
+  <ul><li *ngFor="let c of sync.cambios">{{ c }}</li></ul>
+</div>
+
+<ng-container *ngIf="resultado as r">
+  <p class="ayuda" *ngIf="guardado">
+    Horario guardado. <a routerLink="/calendario">Ver calendario</a> · <a routerLink="/editor">Abrir el editor</a>
+  </p>
+
+  <div class="tarjetas metricas">
+    <div class="card metrica"><span>{{ r.gruposProgramados }}</span><small>Grupos programados</small></div>
+    <div class="card metrica"><span>{{ r.totalSesiones }}</span><small>Sesiones en total</small></div>
+    <div class="card metrica ok"><span>{{ r.sesionesUbicadas }}</span><small>Ubicadas</small></div>
+    <div class="card metrica" [class.alerta-metrica]="r.sesionesSinUbicar > 0"><span>{{ r.sesionesSinUbicar }}</span><small>Sin ubicar</small></div>
+  </div>
+
+  <div class="card" *ngIf="r.avisos.length > 0">
+    <h3>Avisos</h3>
+    <ul><li *ngFor="let a of r.avisos">{{ a }}</li></ul>
+  </div>
+
+  <div class="card" *ngIf="r.gruposNoAbiertos.length > 0">
+    <h3>Grupos que no se programaron (sin los inscritos mínimos)</h3>
+    <ul><li *ngFor="let g of r.gruposNoAbiertos">{{ g }}</li></ul>
+  </div>
+
+  <div class="card" *ngIf="r.sinUbicar.length > 0">
+    <h3>Sesiones sin ubicar ({{ r.sinUbicar.length }})</h3>
+    <table>
+      <thead><tr><th>Curso</th><th>Grupo</th><th>Sesión</th><th>Docente</th><th>Causa</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let s of r.sinUbicar">
+          <td>S{{ s.semestre }} · {{ s.cursoCodigo }} – {{ s.cursoNombre }}</td>
+          <td>{{ s.numeroGrupo }}</td>
+          <td>{{ s.numeroSesion }}</td>
+          <td>{{ s.docenteNombre }}</td>
+          <td>
+            {{ s.causaDescripcion || causa(s.causa) }}
+            <ul class="desglose" *ngIf="s.desglose?.length">
+              <li *ngFor="let d of s.desglose">{{ d.descripcion || causa(d.motivo) }} ({{ d.franjas }} franjas)</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="ayuda" *ngIf="guardado">Puedes ubicarlas a mano desde el <a routerLink="/editor">editor de horario</a>.</p>
+  </div>
+
+  <div class="card" *ngIf="semestres.length > 0">
+    <h3>{{ guardado ? 'Horario generado' : 'Vista previa de la propuesta' }}</h3>
+    <div class="barra">
+      <label class="inline">Semestre
+        <select name="semVista" [(ngModel)]="semestreVista" (ngModelChange)="refiltrar()">
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let s of semestres" [ngValue]="s">Semestre {{ s }}</option>
+        </select>
+      </label>
+    </div>
+    <app-calendario-semanal [sesiones]="visibles"></app-calendario-semanal>
+  </div>
+</ng-container>

@@ -1,0 +1,55 @@
+<h2>Usuarios</h2>
+<p class="ayuda">
+  Cuentas con las que se inicia sesión. Un usuario con rol Docente debe vincularse luego a un docente en la pantalla «Docentes».
+</p>
+
+<app-alerta [error]="error" [ok]="ok"></app-alerta>
+
+<div class="barra">
+  <label class="inline">Rol
+    <select [(ngModel)]="filtroRol" name="filtroRol" (change)="cargar()">
+      <option value="">Todos</option>
+      <option *ngFor="let r of roles" [value]="r.valor">{{ r.etiqueta }}</option>
+    </select>
+  </label>
+  <button type="button" class="primario" (click)="nuevo()">Nuevo usuario</button>
+</div>
+
+<form class="card" *ngIf="mostrarForm" (ngSubmit)="guardar()">
+  <h3>{{ editandoId === null ? 'Nuevo usuario' : 'Editar usuario' }}</h3>
+  <div class="fila-form">
+    <label>Nombre
+      <input name="nombre" [(ngModel)]="form.nombre" required>
+    </label>
+    <label>Correo
+      <input name="correo" type="email" [(ngModel)]="form.correo" required>
+    </label>
+    <label>Rol
+      <select name="rol" [(ngModel)]="form.rol">
+        <option *ngFor="let r of roles" [value]="r.valor">{{ r.etiqueta }}</option>
+      </select>
+    </label>
+    <label>{{ editandoId === null ? 'Contraseña' : 'Nueva contraseña (opcional)' }}
+      <input name="password" type="password" [(ngModel)]="form.password" [required]="editandoId === null" autocomplete="new-password">
+    </label>
+  </div>
+  <p class="ayuda">La contraseña debe tener al menos 8 caracteres, con letras y números.</p>
+  <button type="submit" class="primario">Guardar</button>
+  <button type="button" (click)="cancelar()">Cancelar</button>
+</form>
+
+<p class="vacio" *ngIf="!cargando && usuarios.length === 0">No hay usuarios.</p>
+<table *ngIf="usuarios.length > 0">
+  <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead>
+  <tbody>
+    <tr *ngFor="let u of usuarios">
+      <td>{{ u.nombre }}</td>
+      <td>{{ u.correo }}</td>
+      <td>{{ etiqueta(u.rol) }}</td>
+      <td class="acciones">
+        <button type="button" (click)="editar(u)">Editar</button>
+        <button type="button" class="peligro" (click)="eliminar(u)" [disabled]="esYo(u)" [title]="esYo(u) ? 'No puedes eliminar tu propio usuario' : ''">Eliminar</button>
+      </td>
+    </tr>
+  </tbody>
+</table>

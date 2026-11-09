@@ -1,43 +1,44 @@
 <div class="cal-scroll">
-  <div
-    class="cal"
-    [class.arrastrando]="!!schedule.arrastrando()"
-    [style.grid-template-rows]="'auto repeat(' + horas.length + ', 36px)'"
-  >
-    <!-- Encabezados -->
-    <div class="cal-h" style="grid-row: 1; grid-column: 1"></div>
-    <div class="cal-h" *ngFor="let d of dias; let i = index" [style.grid-row]="1" [style.grid-column]="i + 2">{{ d }}</div>
+  <div class="cal2" [class.arrastrando]="drag.sesionId() !== null">
+    <div class="cal2-esquina"></div>
+    <div class="cal2-h" *ngFor="let d of dias">{{ d.etiqueta }}</div>
 
-    <!-- Celdas -->
-    <ng-container *ngFor="let h of horas; let r = index">
-      <div class="cal-hora" [style.grid-row]="r + 2" [style.grid-column]="1">{{ h }}:00</div>
+    <div class="cal2-horas">
+      <div class="cal2-hora" *ngFor="let h of horas" [style.height.px]="alto">{{ etiqueta(h) }}</div>
+    </div>
+
+    <div class="cal2-col" *ngFor="let col of columnas; trackBy: porDia" [style.height.px]="horas.length * alto">
       <div
-        class="cal-celda"
-        *ngFor="let d of numDias"
-        [ngClass]="claseCelda(d, h)"
-        [style.grid-row]="r + 2"
-        [style.grid-column]="d + 1"
-        (dragover)="alArrastrarSobre($event, d, h)"
-        (drop)="alSoltar($event, d, h)"
+        class="cal2-celda"
+        *ngFor="let h of horas"
+        [ngClass]="claseCelda(col.dia, h)"
+        [style.height.px]="alto"
+        (dragover)="alArrastrarSobre($event, col.dia, h)"
+        (drop)="alSoltar($event, col.dia, h)"
       ></div>
-    </ng-container>
 
-    <!-- Sesiones ubicadas -->
-    <div
-      class="cal-sesion"
-      *ngFor="let s of ubicadas"
-      [class.seleccionada]="s.id === seleccionadaId"
-      [class.editable]="editable"
-      [attr.draggable]="editable"
-      [style.grid-row]="s.hora! - inicio + 2 + ' / span ' + s.duracion"
-      [style.grid-column]="s.dia! + 1"
-      (dragstart)="alIniciarArrastre($event, s)"
-      (dragend)="alTerminarArrastre()"
-      (click)="seleccionar.emit(s.id)"
-    >
-      <strong>{{ schedule.etiqueta(s) }}</strong>
-      <small>{{ s.hora }}:00–{{ s.hora! + s.duracion }}:00</small>
-      <small>{{ data.nombreDocente(s.docenteId) }} · {{ data.nombreAula(s.aulaId) }}</small>
+      <div
+        class="cal2-ses"
+        *ngFor="let it of col.items; trackBy: porId"
+        [ngClass]="'sem-' + (it.s.semestre % 10)"
+        [class.seleccionada]="it.s.id === seleccionadaId"
+        [class.editable]="editable"
+        [attr.draggable]="editable"
+        [attr.title]="titulo(it.s)"
+        [style.top.px]="it.top"
+        [style.height.px]="it.alto - 2"
+        [style.left.%]="it.izq"
+        [style.width.%]="it.ancho"
+        (dragstart)="alIniciarArrastre($event, it.s)"
+        (dragend)="alTerminarArrastre()"
+        (click)="seleccionar.emit(it.s.id)"
+      >
+        <strong>{{ it.s.cursoCodigo }} · G{{ it.s.numeroGrupo }}</strong>
+        <span>{{ it.s.cursoNombre }}</span>
+        <small>{{ etiqueta(it.s.horaInicio!) }}–{{ etiqueta(it.s.horaFin!) }}</small>
+        <small>{{ it.s.docenteNombre }}</small>
+        <small>{{ it.s.aulaNombre }}<ng-container *ngIf="it.s.sedeNombre"> · {{ it.s.sedeNombre }}</ng-container></small>
+      </div>
     </div>
   </div>
 </div>

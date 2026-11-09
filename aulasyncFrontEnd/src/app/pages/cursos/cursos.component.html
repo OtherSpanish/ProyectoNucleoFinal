@@ -1,0 +1,78 @@
+<h2>Cursos</h2>
+<p class="ayuda">
+  Materias de cada semestre con su tipo de aula e intensidad horaria (número y duración de las sesiones semanales).
+  <ng-container *ngIf="!puedeEditar()">Tu rol solo permite consultar.</ng-container>
+</p>
+
+<app-alerta [error]="error" [ok]="ok"></app-alerta>
+
+<div class="barra">
+  <label class="inline">Semestre
+    <select name="fsem" [(ngModel)]="filtroSemestre" (change)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let s of semestres" [ngValue]="s.id">{{ s.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Especialidad
+    <select name="fesp" [(ngModel)]="filtroEspecialidad" (change)="cargar()">
+      <option [ngValue]="null">Todas</option>
+      <option *ngFor="let e of especialidades" [ngValue]="e.id">{{ e.nombre }}</option>
+    </select>
+  </label>
+  <button type="button" class="primario" *ngIf="puedeEditar()" (click)="nuevo()">Nuevo curso</button>
+</div>
+
+<form class="card" *ngIf="mostrarForm" (ngSubmit)="guardar()">
+  <h3>{{ editandoId === null ? 'Nuevo curso' : 'Editar curso' }}</h3>
+  <div class="fila-form">
+    <label>Código <input name="codigo" [(ngModel)]="form.codigo" required></label>
+    <label class="ancho">Nombre <input name="nombre" [(ngModel)]="form.nombre" required></label>
+    <label>Semestre
+      <select name="semestre" [(ngModel)]="form.semestreId" required>
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let s of semestres" [ngValue]="s.id">{{ s.nombre }}</option>
+      </select>
+    </label>
+    <label>Especialidad
+      <select name="especialidad" [(ngModel)]="form.especialidadId" required>
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let e of especialidades" [ngValue]="e.id">{{ e.nombre }}</option>
+      </select>
+    </label>
+    <label>Tipo de aula
+      <select name="tipoAula" [(ngModel)]="form.tipoAula">
+        <option *ngFor="let t of tipos" [value]="t.valor">{{ t.etiqueta }}</option>
+      </select>
+    </label>
+    <label>Intensidad horaria
+      <select name="intensidad" [(ngModel)]="form.intensidad">
+        <option *ngFor="let i of intensidades" [value]="i.valor">{{ i.etiqueta }}</option>
+      </select>
+    </label>
+    <label class="check"><input type="checkbox" name="nucleo" [(ngModel)]="form.nucleoComun"> Núcleo común</label>
+  </div>
+  <button type="submit" class="primario">Guardar</button>
+  <button type="button" (click)="mostrarForm = false">Cancelar</button>
+</form>
+
+<p class="vacio" *ngIf="cursos.length === 0">No hay cursos{{ filtroSemestre || filtroEspecialidad ? ' con esos filtros' : '' }}.</p>
+<table *ngIf="cursos.length > 0">
+  <thead>
+    <tr><th>Código</th><th>Curso</th><th>Sem.</th><th>Especialidad</th><th>Aula</th><th>Intensidad</th><th>Núcleo común</th><th *ngIf="puedeEditar()"></th></tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let c of cursos">
+      <td>{{ c.codigo }}</td>
+      <td>{{ c.nombre }}</td>
+      <td>{{ c.semestreNumero }}</td>
+      <td>{{ c.especialidadNombre }}</td>
+      <td>{{ etiquetaTipo(c.tipoAula) }}</td>
+      <td>{{ etiquetaIntensidad(c.intensidad) }}</td>
+      <td>{{ c.nucleoComun ? 'Sí' : 'No' }}</td>
+      <td class="acciones" *ngIf="puedeEditar()">
+        <button type="button" (click)="editar(c)">Editar</button>
+        <button type="button" class="peligro" (click)="eliminar(c)">Eliminar</button>
+      </td>
+    </tr>
+  </tbody>
+</table>

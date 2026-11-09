@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { NgIf } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './shared/navbar/navbar.component';
@@ -19,4 +19,16 @@ import { AuthService } from './core/auth.service';
 })
 export class AppComponent {
   auth = inject(AuthService);
+  private refrescado = false;
+
+  constructor() {
+    // Al abrir la app con una sesión guardada, se confirma con el back quién es el usuario (rol vigente).
+    effect(() => {
+      if (this.auth.autenticado() && !this.refrescado) {
+        this.refrescado = true;
+        queueMicrotask(() => this.auth.refrescar());
+      }
+      if (!this.auth.autenticado()) this.refrescado = false;
+    });
+  }
 }

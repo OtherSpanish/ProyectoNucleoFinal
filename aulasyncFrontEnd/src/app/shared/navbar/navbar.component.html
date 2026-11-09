@@ -1,6 +1,6 @@
 <aside class="navbar">
-  <a class="marca" routerLink="/inicio">
-    <span class="logo"><img [src]="logo" alt="Aula Sync"></span>
+  <a class="marca" [routerLink]="inicio()">
+    <span class="logo" *ngIf="hayLogo"><img src="logo.png" alt="Aula Sync" (error)="hayLogo = false"></span>
     <span class="marca-texto">Aula Sync</span>
   </a>
 
@@ -10,6 +10,7 @@
 
   <div class="usuario">
     <span class="nombre">{{ usuario()?.nombre }}</span>
+    <small class="correo">{{ usuario()?.correo }}</small>
     <em>{{ rol() }}</em>
     <button type="button" (click)="salir()">Cerrar sesión</button>
   </div>

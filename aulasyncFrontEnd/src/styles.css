@@ -85,7 +85,6 @@ th { background: var(--verde-claro); color: var(--verde); }
 /* Login */
 .login { max-width: 380px; margin: 40px auto; }
 .login .card { border-top: 4px solid var(--naranja); }
-.demo { padding-left: 18px; margin: 4px 0; }
 
 /* Inicio */
 .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
@@ -103,17 +102,64 @@ th { background: var(--verde-claro); color: var(--verde); }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
 @media (max-width: 1000px) { .editor { grid-template-columns: 1fr; } }
 
-/* Calendario semanal */
+/* Calendario semanal (carriles para sesiones que se cruzan) */
 .cal-scroll { overflow-x: auto; }
-.cal { display: grid; grid-template-columns: 52px repeat(6, minmax(110px, 1fr)); min-width: 760px; position: relative; }
-.cal-h { background: var(--verde); color: #fff; font-weight: bold; text-align: center; padding: 6px 0; }
-.cal-hora { font-size: 12px; color: var(--texto-suave); text-align: right; padding: 2px 6px 0 0; border-top: 1px solid #ece9df; }
-.cal-celda { border-top: 1px solid #ece9df; border-left: 1px solid #ece9df; }
-.cal-celda.off { background: repeating-linear-gradient(45deg, #f1efe7, #f1efe7 6px, #e7e4d9 6px, #e7e4d9 12px); }
-.cal-celda.ok { background: #cdeccf; }
-.cal-celda.mal { background: #f6d2d2; }
-.cal-sesion { z-index: 1; margin: 1px 2px; padding: 3px 6px; border-radius: 4px; background: var(--verde-claro); border: 1px solid #8fbfa3; border-left: 4px solid var(--verde); overflow: hidden; display: flex; flex-direction: column; font-size: 12px; }
-.cal-sesion small { color: #3d5a4a; }
-.cal-sesion.editable { cursor: grab; }
-.cal-sesion.seleccionada { outline: 2px solid var(--naranja); background: var(--naranja-claro); border-left-color: var(--naranja); }
-.cal.arrastrando .cal-sesion { pointer-events: none; opacity: .7; }
+.cal2 { display: grid; grid-template-columns: 52px repeat(6, minmax(100px, 1fr)); min-width: 680px; }
+.cal2-esquina { background: var(--verde); }
+.cal2-h { background: var(--verde); color: #fff; font-weight: bold; text-align: center; padding: 6px 0; }
+.cal2-hora { font-size: 12px; color: var(--texto-suave); text-align: right; padding: 2px 6px 0 0; border-top: 1px solid #ece9df; }
+.cal2-col { position: relative; border-left: 1px solid #ece9df; }
+.cal2-celda { border-top: 1px solid #ece9df; }
+.cal2-celda.off { background: repeating-linear-gradient(45deg, #f1efe7, #f1efe7 6px, #e7e4d9 6px, #e7e4d9 12px); }
+.cal2-celda.ok { background: #cdeccf; }
+.cal2-celda.mal { background: #f6d2d2; }
+.cal2-celda.validando { background: #fff1c9; }
+.cal2-ses { position: absolute; z-index: 1; padding: 3px 6px; border-radius: 4px; border: 1px solid #8fbfa3; border-left: 4px solid var(--verde); background: var(--verde-claro); overflow: hidden; display: flex; flex-direction: column; font-size: 12px; line-height: 1.25; box-sizing: border-box; cursor: default; }
+.cal2-ses small { color: #3d5a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal2-ses span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal2-ses.editable { cursor: grab; }
+.cal2-ses.seleccionada { outline: 2px solid var(--naranja); }
+.cal2.arrastrando .cal2-ses { pointer-events: none; opacity: .6; }
+.sem-0 { background: #e6e0f5; border-color: #a99bd6; border-left-color: #6b4fbb; }
+.sem-1 { background: #d9eadf; border-color: #8fbfa3; border-left-color: #0b4f34; }
+.sem-2 { background: #dbe9f7; border-color: #94b9dc; border-left-color: #1f64a8; }
+.sem-3 { background: #fff1de; border-color: #e8bf86; border-left-color: #d97706; }
+.sem-4 { background: #f7dde6; border-color: #d99bb2; border-left-color: #b0366a; }
+.sem-5 { background: #dcf1f0; border-color: #92c9c6; border-left-color: #137a75; }
+.sem-6 { background: #f3efc9; border-color: #cfc46f; border-left-color: #8a7d0a; }
+.sem-7 { background: #ecdcd2; border-color: #c49f86; border-left-color: #8a4b24; }
+.sem-8 { background: #e2e6ea; border-color: #a2adb8; border-left-color: #46586a; }
+.sem-9 { background: #e5f0d3; border-color: #aacb7f; border-left-color: #4f7f13; }
+
+/* Editor de franjas */
+.franjas { display: grid; grid-template-columns: 52px repeat(6, minmax(56px, 1fr)); max-width: 640px; user-select: none; }
+.fr-h { background: var(--verde); color: #fff; font-weight: bold; text-align: center; padding: 4px 0; font-size: 12px; }
+.fr-hora { font-size: 11px; color: var(--texto-suave); text-align: right; padding: 3px 6px 0 0; }
+.fr-celda { height: 24px; border: 1px solid #ece9df; background: #fff; cursor: pointer; }
+.fr-celda.on { background: #7cc59a; border-color: #4f9f72; }
+.fr-celda.off { background: repeating-linear-gradient(45deg, #f1efe7, #f1efe7 6px, #e7e4d9 6px, #e7e4d9 12px); cursor: not-allowed; }
+.franjas.solo-lectura .fr-celda { cursor: default; }
+
+/* Varios */
+.barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 10px 0; }
+.barra label.inline { margin: 0; }
+label.check { flex-direction: row; align-items: center; gap: 6px; margin: 6px 0; }
+label.ancho { min-width: 280px; }
+fieldset { border: 1px solid var(--borde); border-radius: 4px; margin: 10px 0; }
+fieldset legend { color: var(--verde); font-weight: bold; padding: 0 6px; }
+td.acciones { white-space: nowrap; text-align: right; }
+td.acciones button { margin-left: 4px; }
+tr.fila-activa td { background: var(--naranja-claro); }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; border: 1px solid; }
+.chip.ok { background: var(--ok-fondo); border-color: #9fcfae; color: var(--verde); }
+.chip.pendiente { background: var(--naranja-claro); border-color: #e8bf86; color: #8a5200; }
+.pestanas button { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.pestana-cuerpo { border-top: 2px solid var(--naranja); padding-top: 8px; }
+.metricas .metrica { text-align: center; margin: 0; }
+.metrica span { display: block; font-size: 28px; font-weight: bold; color: var(--verde); }
+.metrica.ok span { color: var(--verde-medio); }
+.metrica.alerta-metrica span { color: var(--error); }
+.metrica small { color: var(--texto-suave); }
+.desglose { margin: 4px 0 0 16px; padding: 0; color: var(--texto-suave); font-size: 12px; }
+.lista-sesiones li.seleccionada { outline: 2px solid var(--verde); }
+.login .card h1 { margin: 0; color: var(--verde); }

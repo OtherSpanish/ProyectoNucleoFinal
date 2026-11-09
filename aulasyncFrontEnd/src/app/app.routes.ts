@@ -1,44 +1,74 @@
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/auth.guard';
-import { LoginComponent } from './pages/login/login.component';
-import { InicioComponent } from './pages/inicio/inicio.component';
-import { DatosMaestrosComponent } from './pages/datos-maestros/datos-maestros.component';
-import { DisponibilidadDocenteComponent } from './pages/disponibilidad/disponibilidad-docente.component';
-import { GenerarPropuestaComponent } from './pages/generar-propuesta/generar-propuesta.component';
-import { EditorDragDropComponent } from './pages/editor/editor-drag-drop.component';
-import { CalendarioPageComponent } from './pages/calendario/calendario-page.component';
-import { ConsultaHorarioComponent } from './pages/consulta/consulta-horario.component';
-import { ConsultaHistorialComponent } from './pages/historial/consulta-historial.component';
-import { ConfiguracionComponent } from './pages/configuracion/configuracion.component';
-import { GestionUsuariosComponent } from './pages/usuarios/gestion-usuarios.component';
 
+// Los roles de cada ruta replican los @PreAuthorize del back.
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent) },
   {
     path: '',
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
-      { path: 'inicio', component: InicioComponent },
-
-      // Comité Táctico
-      { path: 'datos-maestros', component: DatosMaestrosComponent, canActivate: [roleGuard], data: { roles: ['COMITE_TACTICO'] } },
-      { path: 'disponibilidad', component: DisponibilidadDocenteComponent, canActivate: [roleGuard], data: { roles: ['COMITE_TACTICO'] } },
-      { path: 'generar', component: GenerarPropuestaComponent, canActivate: [roleGuard], data: { roles: ['COMITE_TACTICO'] } },
-      { path: 'editor', component: EditorDragDropComponent, canActivate: [roleGuard], data: { roles: ['COMITE_TACTICO'] } },
-
-      // Comité Táctico y Dirección
-      { path: 'calendario', component: CalendarioPageComponent, canActivate: [roleGuard], data: { roles: ['COMITE_TACTICO', 'DIRECCION'] } },
-
-      // Dirección
-      { path: 'consulta', component: ConsultaHorarioComponent, canActivate: [roleGuard], data: { roles: ['DIRECCION'] } },
-
-      // Dirección y Administrador
-      { path: 'historial', component: ConsultaHistorialComponent, canActivate: [roleGuard], data: { roles: ['DIRECCION', 'ADMINISTRADOR'] } },
+      {
+        path: 'inicio', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/inicio/inicio.component').then((m) => m.InicioComponent),
+      },
 
       // Administrador
-      { path: 'configuracion', component: ConfiguracionComponent, canActivate: [roleGuard], data: { roles: ['ADMINISTRADOR'] } },
-      { path: 'usuarios', component: GestionUsuariosComponent, canActivate: [roleGuard], data: { roles: ['ADMINISTRADOR'] } },
+      {
+        path: 'usuarios', canActivate: [roleGuard], data: { roles: ['ADMIN'] },
+        loadComponent: () => import('./pages/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
+      },
+
+      // Administrador y comité (el comité solo consulta docentes y catálogos)
+      {
+        path: 'docentes', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/docentes/docentes.component').then((m) => m.DocentesComponent),
+      },
+      {
+        path: 'catalogos', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/catalogos/catalogos.component').then((m) => m.CatalogosComponent),
+      },
+      {
+        path: 'cursos', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/cursos/cursos.component').then((m) => m.CursosComponent),
+      },
+      {
+        path: 'grupos', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/grupos/grupos.component').then((m) => m.GruposComponent),
+      },
+      {
+        path: 'calendario', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/calendario/calendario.component').then((m) => m.CalendarioComponent),
+      },
+      {
+        path: 'consulta', canActivate: [roleGuard], data: { roles: ['ADMIN', 'COMITE'] },
+        loadComponent: () => import('./pages/consulta/consulta.component').then((m) => m.ConsultaComponent),
+      },
+
+      // Comité táctico
+      {
+        path: 'generar', canActivate: [roleGuard], data: { roles: ['COMITE'] },
+        loadComponent: () => import('./pages/generar/generar.component').then((m) => m.GenerarComponent),
+      },
+      {
+        path: 'editor', canActivate: [roleGuard], data: { roles: ['COMITE'] },
+        loadComponent: () => import('./pages/editor/editor.component').then((m) => m.EditorComponent),
+      },
+
+      // Docente
+      {
+        path: 'mi-horario', canActivate: [roleGuard], data: { roles: ['DOCENTE'] },
+        loadComponent: () => import('./pages/calendario/mi-horario.component').then((m) => m.MiHorarioComponent),
+      },
+      {
+        path: 'mis-cursos', canActivate: [roleGuard], data: { roles: ['DOCENTE'] },
+        loadComponent: () => import('./pages/mis-cursos/mis-cursos.component').then((m) => m.MisCursosComponent),
+      },
+      {
+        path: 'mi-disponibilidad', canActivate: [roleGuard], data: { roles: ['DOCENTE'] },
+        loadComponent: () => import('./pages/mi-disponibilidad/mi-disponibilidad.component').then((m) => m.MiDisponibilidadComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
