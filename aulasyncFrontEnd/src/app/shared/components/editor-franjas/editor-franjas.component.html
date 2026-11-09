@@ -2,18 +2,21 @@
   @for (franja of franjas(); track $index) {
     <div class="fila">
       <select [(ngModel)]="franja.dia" aria-label="Día">
-        @for (dia of dias; track dia.valor) {
+        <option [ngValue]="null" disabled>Día</option>
+        @for (dia of dias(); track dia.valor) {
           <option [ngValue]="dia.valor">{{ dia.etiqueta }}</option>
         }
       </select>
       <select [(ngModel)]="franja.horaInicio" aria-label="Hora de inicio">
-        @for (hora of horas; track hora) {
+        <option [ngValue]="null" disabled>Inicio</option>
+        @for (hora of horas(); track hora) {
           <option [ngValue]="hora">{{ hora | hora }}</option>
         }
       </select>
       <span class="a">a</span>
       <select [(ngModel)]="franja.horaFin" aria-label="Hora de fin">
-        @for (hora of horas; track hora) {
+        <option [ngValue]="null" disabled>Fin</option>
+        @for (hora of horas(); track hora) {
           <option [ngValue]="hora">{{ hora | hora }}</option>
         }
       </select>

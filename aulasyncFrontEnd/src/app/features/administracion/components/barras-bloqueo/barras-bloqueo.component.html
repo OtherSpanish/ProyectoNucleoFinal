@@ -1,11 +1,10 @@
 @let datos = paso();
 <ol class="reglas">
-  @for (regla of reglas; track regla.valor) {
-    @let franjas = datos.bloqueos | franjasPorMotivo: regla.valor;
-    <li [class.sin-efecto]="franjas === 0">
-      <span class="nombre">{{ $index + 1 }}. {{ regla.etiqueta }}</span>
-      <span class="barra"><span [style.width.%]="(franjas / datos.franjasCandidatas) * 100"></span></span>
-      <span class="numero">{{ franjas }}</span>
+  @for (bloqueo of datos.bloqueos; track bloqueo.motivo) {
+    <li [class.sin-efecto]="bloqueo.franjas === 0" [title]="bloqueo.descripcion">
+      <span class="nombre">{{ $index + 1 }}. {{ bloqueo.motivo | etiqueta: 'motivos' }}</span>
+      <span class="barra"><span [style.width.%]="(bloqueo.franjas / datos.franjasCandidatas) * 100"></span></span>
+      <span class="numero">{{ bloqueo.franjas }}</span>
     </li>
   }
   <li class="viables">

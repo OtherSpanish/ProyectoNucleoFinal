@@ -96,17 +96,33 @@ export const ETAPAS_MOTOR: EtapaMotorModel[] = [
   },
 ];
 
-/** Reglas que el motor revisa para cada franja, en su orden de evaluación. */
-export const REGLAS_MOTOR: OpcionModel[] = [
-  { valor: 'DOCENTE_NO_DISPONIBLE', etiqueta: 'Disponibilidad del docente' },
-  { valor: 'CARGA_DOCENTE', etiqueta: 'Tope de horas del docente' },
-  { valor: 'SEDE_NO_PERMITIDA', etiqueta: 'Sede permitida ese día' },
-  { valor: 'CHOQUE_DOCENTE', etiqueta: 'Choque con el docente' },
-  { valor: 'CHOQUE_GRUPO', etiqueta: 'Choque con su grupo' },
-  { valor: 'CHOQUE_BLOQUE', etiqueta: 'Choque con su bloque' },
-  { valor: 'MISMO_DIA_GRUPO', etiqueta: 'Un día por grupo (DSU)' },
-  { valor: 'SIN_AULA', etiqueta: 'Aula libre y compatible' },
+/** Pseudocódigo de MotorHorario (número de línea → texto). */
+export const PSEUDOCODIGO_MOTOR: string[] = [
+  'sesiones ← sesiones semanales de los grupos abiertos',
+  'para cada par de sesiones (a, b):',
+  '    si a.docente = b.docente → unir con arista',
+  '    si a.grupo = b.grupo → unir con arista',
+  '    si mismo bloque y materias distintas → unir con arista',
+  'para cada grupo: DSU.unir(sus sesiones)',
+  'mientras queden sesiones pendientes:',
+  '    v ← pendiente con más franjas bloqueadas (empate: mayor grado)',
+  '    revisar las reglas en cada franja candidata de v',
+  '    si hay franjas viables: ubicar v en la del día menos cargado',
+  '    si no: v queda sin ubicar (causa principal)',
+  'devolver el horario',
 ];
+
+/** Líneas que se resaltan en cada etapa (empiezan en 1). La última es la principal. */
+export const LINEAS_POR_ETAPA: Record<string, number[]> = {
+  nodos: [1],
+  docente: [2, 3],
+  grupo: [2, 4],
+  bloque: [2, 5],
+  grafo: [3, 4, 5, 2],
+  dsu: [6],
+  dsatur: [7],
+  resultado: [12],
+};
 
 export const CATALOGO_MODOS_COLOR: OpcionModel[] = [
   { valor: 'semestre', etiqueta: 'Semestre' },
@@ -124,14 +140,8 @@ export const COLORES_SEMESTRE: string[] = [
 
 export const COLORES_BLOQUE: string[] = ['#e8890c', '#2f7f86', '#8a4fa3', '#5c7a2e', '#c2453a', '#3d5ea8'];
 
-export const COLORES_DIA: Record<string, string> = {
-  MONDAY: '#3d5ea8',
-  TUESDAY: '#2f7f86',
-  WEDNESDAY: '#5c7a2e',
-  THURSDAY: '#9a7b12',
-  FRIDAY: '#8a4fa3',
-  SATURDAY: '#b2547c',
-};
+/** Paleta para los días: el color va según la posición del día en GET /api/catalogos (se repite si hay más días). */
+export const COLORES_DIA: string[] = ['#3d5ea8', '#2f7f86', '#5c7a2e', '#9a7b12', '#8a4fa3', '#b2547c', '#c2453a'];
 
 /** Escala de grado: [grado mínimo, color]. */
 export const ESCALA_GRADO: [number, string][] = [

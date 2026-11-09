@@ -1,0 +1,21 @@
+@if (abierta()) {
+  <div class="fondo" (click)="cerrar.emit()"></div>
+  <section class="ventana" role="dialog" aria-modal="true" [attr.aria-label]="titulo()">
+    <header>
+      <div>
+        @if (subtitulo()) {
+          <span class="subtitulo">{{ subtitulo() }}</span>
+        }
+        <h2>{{ titulo() }}</h2>
+      </div>
+      <button type="button" class="boton-icono" (click)="cerrar.emit()" aria-label="Cerrar"><app-icono nombre="cerrar" /></button>
+    </header>
+    <div class="cuerpo">
+      @if (cargando()) {
+        <div class="cargando">Cargando detalle…</div>
+      } @else {
+        <ng-content />
+      }
+    </div>
+  </section>
+}

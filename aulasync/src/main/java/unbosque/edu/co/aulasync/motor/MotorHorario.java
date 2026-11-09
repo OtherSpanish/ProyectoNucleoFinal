@@ -341,14 +341,19 @@ public class MotorHorario {
 	}
 
 	/**
-	 * Convierte el conteo de franjas descartadas en una lista, en el orden en que
-	 * el motor evalúa las reglas (el orden del enum {@link MotivoRechazo}).
+	 * Lista las franjas descartadas por cada regla que evalúa el motor (las de
+	 * {@link MotivoRechazo} hasta {@link MotivoRechazo#SIN_AULA}, en ese orden),
+	 * incluidas las que no descartaron ninguna, para mostrar la revisión
+	 * completa.
 	 */
 	private List<CausaDescartada> listarBloqueos(Map<MotivoRechazo, Integer> causas) {
 		List<CausaDescartada> bloqueos = new ArrayList<>();
-		for (Map.Entry<MotivoRechazo, Integer> entrada : causas.entrySet()) {
-			bloqueos.add(new CausaDescartada(entrada.getKey(), entrada.getKey().getDescripcion(),
-					entrada.getValue()));
+		for (MotivoRechazo motivo : MotivoRechazo.values()) {
+			if (motivo.ordinal() > MotivoRechazo.SIN_AULA.ordinal()) {
+				break;
+			}
+			Integer franjas = causas.get(motivo);
+			bloqueos.add(new CausaDescartada(motivo, motivo.getDescripcion(), franjas == null ? 0 : franjas));
 		}
 		return bloqueos;
 	}

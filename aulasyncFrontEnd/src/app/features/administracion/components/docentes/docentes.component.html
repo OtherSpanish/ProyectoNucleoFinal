@@ -33,12 +33,12 @@
       </thead>
       <tbody>
         @for (docente of docentes(); track docente.id) {
-          <tr>
+          <tr class="clicable" (click)="verDetalle(docente)">
             <td>
               <strong>{{ docente.usuario.nombre }}</strong>
               <div class="texto-suave mono">{{ docente.usuario.correo }}</div>
             </td>
-            <td>{{ docente.dedicacion | etiqueta: 'dedicacion' }}</td>
+            <td>{{ docente.dedicacion | etiqueta: 'dedicaciones' }}</td>
             <td>
               <div class="lista-insignias">
                 @for (especialidad of docente.especialidades; track especialidad.id) {
@@ -46,7 +46,7 @@
                 }
               </div>
             </td>
-            <td class="acciones">
+            <td class="acciones" (click)="$event.stopPropagation()">
               <button type="button" class="boton boton-fantasma" (click)="docenteDisponibilidad.set(docente)">
                 <app-icono nombre="reloj" [tamano]="16" /> Disponibilidad
               </button>
@@ -75,8 +75,8 @@
       <span>Dedicación</span>
       <select name="dedicacion" [(ngModel)]="formulario.dedicacion">
         <option [ngValue]="null" disabled>Selecciona la dedicación</option>
-        @for (dedicacion of dedicaciones; track dedicacion.valor) {
-          <option [ngValue]="dedicacion.valor">{{ dedicacion.etiqueta }}</option>
+        @for (dedicacion of dedicaciones(); track dedicacion.valor) {
+          <option [ngValue]="dedicacion.valor">{{ dedicacion.etiqueta }} ({{ dedicacion.horasMaximas }} h)</option>
         }
       </select>
     </label>
@@ -105,3 +105,59 @@
     <app-disponibilidad-docente [docenteId]="docente.id!" (guardado)="docenteDisponibilidad.set(null)" />
   }
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.usuario?.nombre ?? ''"
+  subtitulo="Docente"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as docente) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ docente.usuario.nombre }}</dd>
+      <dt>Correo</dt><dd class="mono">{{ docente.usuario.correo }}</dd>
+      <dt>Dedicación</dt><dd>{{ docente.dedicacion | etiqueta: 'dedicaciones' }}</dd>
+      <dt>Especialidades</dt>
+      <dd>
+        <div class="lista-insignias">
+          @for (especialidad of docente.especialidades; track especialidad.id) {
+            <span class="insignia">{{ especialidad.nombre }}</span>
+          } @empty {
+            <span class="texto-suave">Sin especialidades</span>
+          }
+        </div>
+      </dd>
+    </dl>
+
+    <h3 class="titulo-seccion">Disponibilidad</h3>
+    @if (disponibilidadDetalle(); as disponibilidad) {
+      <div class="estadisticas">
+        <div class="estadistica"><strong>{{ disponibilidad.horasMaximas }} h</strong><span>Tope semanal</span></div>
+        <div class="estadistica destacada"><strong>{{ disponibilidad.horasDisponibles }} h</strong><span>Horas declaradas</span></div>
+      </div>
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Día</th><th>Desde</th><th>Hasta</th></tr></thead>
+          <tbody>
+            @for (franja of disponibilidad.franjas; track $index) {
+              <tr>
+                <td>{{ franja.dia | etiqueta: 'dias' }}</td>
+                <td class="mono">{{ franja.horaInicio | hora }}</td>
+                <td class="mono">{{ franja.horaFin | hora }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="3" class="texto-suave">Sin franjas registradas.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando disponibilidad…</div>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="docenteDisponibilidad.set(docente); detalle.set(null)"><app-icono nombre="reloj" [tamano]="16" /> Editar disponibilidad</button>
+      <button type="button" class="boton boton-secundario" (click)="editar(docente); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

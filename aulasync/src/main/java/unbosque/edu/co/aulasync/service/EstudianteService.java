@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import unbosque.edu.co.aulasync.dto.EstudianteDTO;
 import unbosque.edu.co.aulasync.entity.Estudiante;
 import unbosque.edu.co.aulasync.entity.Grupo;
+import unbosque.edu.co.aulasync.entity.Semestre;
 import unbosque.edu.co.aulasync.exception.CampoObligatorioException;
 import unbosque.edu.co.aulasync.exception.CodigoDuplicadoException;
 import unbosque.edu.co.aulasync.exception.EntidadNoEncontradaException;
@@ -23,7 +24,7 @@ import unbosque.edu.co.aulasync.repository.GrupoRepository;
  * Lógica de negocio de los estudiantes.
  *
  * <p>
- * Valida código único y nombre obligatorio. El código se guarda en mayúsculas
+ * Valida código único, nombre y semestre obligatorios. El código se guarda en mayúsculas
  * y sin espacios a los lados; el correo es opcional y se guarda en minúsculas.
  * Al eliminar un estudiante, primero se le quita de todos sus grupos y, si
  * estaba inscrito en alguno, se publica {@link CambioDatosMaestros}, porque un
@@ -31,7 +32,7 @@ import unbosque.edu.co.aulasync.repository.GrupoRepository;
  * actualizado el índice de búsqueda por prefijo.
  * </p>
  *
- * @version 1.3
+ * @version 1.4
  */
 @Service
 public class EstudianteService {
@@ -41,6 +42,7 @@ public class EstudianteService {
 	private final EstudianteRepository estudianteRepository;
 	private final GrupoRepository grupoRepository;
 	private final BusquedaService busquedaService;
+	private final SemestreService semestreService;
 	private final ApplicationEventPublisher eventos;
 
 	/**
@@ -49,13 +51,15 @@ public class EstudianteService {
 	 * @param estudianteRepository acceso a la tabla de estudiantes.
 	 * @param grupoRepository      inscripciones del estudiante en grupos.
 	 * @param busquedaService      índice de búsqueda por prefijo.
+	 * @param semestreService      búsqueda del semestre que cursa.
 	 * @param eventos              publicador de eventos de Spring.
 	 */
 	public EstudianteService(EstudianteRepository estudianteRepository, GrupoRepository grupoRepository,
-			BusquedaService busquedaService, ApplicationEventPublisher eventos) {
+			BusquedaService busquedaService, SemestreService semestreService, ApplicationEventPublisher eventos) {
 		this.estudianteRepository = estudianteRepository;
 		this.grupoRepository = grupoRepository;
 		this.busquedaService = busquedaService;
+		this.semestreService = semestreService;
 		this.eventos = eventos;
 	}
 
@@ -114,33 +118,40 @@ public class EstudianteService {
 	/**
 	 * Crea un estudiante y lo indexa para la búsqueda.
 	 *
-	 * @param dto código, nombre y correo opcional.
+	 * @param dto código, nombre, semestreId y correo opcional.
 	 * @return el estudiante creado.
-	 * @throws CampoObligatorioException si falta el código o el nombre.
-	 * @throws CodigoDuplicadoException  si el código ya existe.
+	 * @throws CampoObligatorioException    si falta el código, el nombre o el
+	 *                                      semestre.
+	 * @throws CodigoDuplicadoException     si el código ya existe.
+	 * @throws EntidadNoEncontradaException si el semestre no existe.
 	 */
 	@Transactional
-	public EstudianteDTO crear(EstudianteDTO dto) throws CampoObligatorioException, CodigoDuplicadoException {
+	public EstudianteDTO crear(EstudianteDTO dto)
+			throws CampoObligatorioException, CodigoDuplicadoException, EntidadNoEncontradaException {
 		validarDatos(dto);
 		String codigo = normalizarCodigo(dto.getCodigo());
 		LanzadorException.verificarCodigoDisponible(estudianteRepository.existsByCodigoIgnoreCase(codigo), ENTIDAD,
 				codigo);
+		Semestre semestre = semestreService.obtenerEntidad(dto.getSemestreId());
 
-		Estudiante estudiante = new Estudiante(codigo, dto.getNombre().trim(), normalizarCorreo(dto.getCorreo()));
+		Estudiante estudiante = new Estudiante(codigo, dto.getNombre().trim(), normalizarCorreo(dto.getCorreo()),
+				semestre);
 		Estudiante guardado = estudianteRepository.save(estudiante);
 		busquedaService.indexarEstudiante(guardado);
 		return convertirADTO(guardado);
 	}
 
 	/**
-	 * Actualiza código, nombre y correo de un estudiante y lo reindexa. No
-	 * afecta el horario porque sus grupos no cambian.
+	 * Actualiza código, nombre, correo y semestre de un estudiante y lo
+	 * reindexa. No afecta el horario porque sus grupos no cambian.
 	 *
 	 * @param id  identificador.
 	 * @param dto datos nuevos.
 	 * @return el estudiante actualizado.
-	 * @throws EntidadNoEncontradaException si no existe.
-	 * @throws CampoObligatorioException    si falta el código o el nombre.
+	 * @throws EntidadNoEncontradaException si el estudiante o el semestre no
+	 *                                      existen.
+	 * @throws CampoObligatorioException    si falta el código, el nombre o el
+	 *                                      semestre.
 	 * @throws CodigoDuplicadoException     si el código es de otro estudiante.
 	 */
 	@Transactional
@@ -155,6 +166,7 @@ public class EstudianteService {
 		estudiante.setCodigo(codigo);
 		estudiante.setNombre(dto.getNombre().trim());
 		estudiante.setCorreo(normalizarCorreo(dto.getCorreo()));
+		estudiante.setSemestre(semestreService.obtenerEntidad(dto.getSemestreId()));
 		Estudiante guardado = estudianteRepository.save(estudiante);
 		busquedaService.indexarEstudiante(guardado);
 		return convertirADTO(guardado);
@@ -213,8 +225,14 @@ public class EstudianteService {
 	 * @return DTO equivalente.
 	 */
 	public EstudianteDTO convertirADTO(Estudiante estudiante) {
+		Long semestreId = null;
+		Integer semestreNumero = null;
+		if (estudiante.getSemestre() != null) {
+			semestreId = estudiante.getSemestre().getId();
+			semestreNumero = estudiante.getSemestre().getNumero();
+		}
 		return new EstudianteDTO(estudiante.getId(), estudiante.getCodigo(), estudiante.getNombre(),
-				estudiante.getCorreo());
+				estudiante.getCorreo(), semestreId, semestreNumero);
 	}
 
 	// ------------------------------------------------------------------
@@ -224,6 +242,7 @@ public class EstudianteService {
 	private void validarDatos(EstudianteDTO dto) throws CampoObligatorioException {
 		LanzadorException.verificarCampoObligatorio(dto.getCodigo(), "codigo");
 		LanzadorException.verificarCampoObligatorio(dto.getNombre(), "nombre");
+		LanzadorException.verificarObjetoObligatorio(dto.getSemestreId(), "semestreId");
 	}
 
 	private String normalizarCodigo(String codigo) {

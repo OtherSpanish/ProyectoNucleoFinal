@@ -1,7 +1,8 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 
 import { ModoColorModel } from '../../../models/modo-color.model';
 import { NodoTrazaModel } from '../../../models/nodo-traza.model';
+import { CatalogoService } from '../../../services/catalogo.service';
 import {
   COLOR_ACTUAL,
   COLOR_PENDIENTE,
@@ -15,6 +16,8 @@ import {
 /** Color con el que se pinta un nodo según el criterio elegido (solo presentación). */
 @Pipe({ name: 'colorNodo', standalone: false })
 export class ColorNodoPipe implements PipeTransform {
+  private readonly catalogoService = inject(CatalogoService);
+
   transform(nodo: NodoTrazaModel, modo: ModoColorModel, pasoActual: number): string {
     switch (modo) {
       case 'semestre':
@@ -64,6 +67,12 @@ export class ColorNodoPipe implements PipeTransform {
     if (!nodo.ubicada || nodo.dia === null) {
       return COLOR_SIN_UBICAR;
     }
-    return COLORES_DIA[nodo.dia];
+    const dias = this.catalogoService.opciones('dias');
+    for (let i = 0; i < dias.length; i++) {
+      if (dias[i].valor === nodo.dia) {
+        return COLORES_DIA[i % COLORES_DIA.length];
+      }
+    }
+    return COLOR_SIN_UBICAR;
   }
 }

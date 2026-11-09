@@ -40,11 +40,11 @@ export class DisposicionGrafoService {
     return posiciones;
   }
 
-  /** Punto de partida: cada semestre ocupa un sector de una elipse. */
+  /** Punto de partida: cada semestre arranca en un ángulo distinto (ángulo áureo), sin suponer cuántos hay. */
   private posicionesIniciales(traza: TrazaMotorModel, ancho: number, alto: number): PosicionNodoModel[] {
     const posiciones: PosicionNodoModel[] = [];
     for (const nodo of traza.nodos) {
-      const angulo = ((nodo.semestre - 1) / 9) * Math.PI * 2 + (nodo.indice % 9) * 0.07;
+      const angulo = nodo.semestre * 2.39996 + (nodo.indice % 9) * 0.07;
       const radio = 0.28 + (nodo.indice % 5) * 0.03;
       posiciones.push({
         x: ancho / 2 + Math.cos(angulo) * ancho * radio,

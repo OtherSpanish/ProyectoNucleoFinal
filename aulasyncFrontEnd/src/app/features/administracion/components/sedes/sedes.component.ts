@@ -2,8 +2,10 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
+import { AulaModel } from '../../../../models/aula.model';
 import { FranjaSedeModel } from '../../../../models/franja-sede.model';
 import { SedeModel } from '../../../../models/sede.model';
+import { AulaService } from '../../../../services/aula.service';
 import { SedeService } from '../../../../services/sede.service';
 
 @Component({
@@ -14,6 +16,7 @@ import { SedeService } from '../../../../services/sede.service';
 })
 export class SedesComponent implements OnInit {
   private readonly sedeService = inject(SedeService);
+  private readonly aulaService = inject(AulaService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
@@ -23,6 +26,9 @@ export class SedesComponent implements OnInit {
   protected readonly panelSedeAbierto = signal(false);
   protected readonly sedeFranjas = signal<SedeModel | null>(null);
   protected readonly franjas = signal<FranjaSedeModel[]>([]);
+  protected readonly detalle = signal<SedeModel | null>(null);
+  protected readonly aulasDetalle = signal<AulaModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected formulario: SedeModel = this.crearVacia();
 
   ngOnInit(): void {
@@ -37,6 +43,25 @@ export class SedesComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+  }
+
+  verDetalle(sede: SedeModel): void {
+    if (sede.id === null) {
+      return;
+    }
+    this.detalle.set(sede);
+    this.aulasDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.sedeService.buscarPorId(sede.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.aulaService.listar({ sedeId: sede.id, tipo: null, capacidadMinima: null, soloDisponibles: null }).subscribe({
+      next: (lista) => this.aulasDetalle.set(lista),
     });
   }
 

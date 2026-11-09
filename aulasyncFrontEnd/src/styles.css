@@ -18,6 +18,8 @@
   --exito: #3f7d20;
   --peligro: #b3361f;
   --radio: 12px;
+  --alto-barra-superior: 0px;
+  --alto-pie: 46px;
   --fuente-texto: 'Figtree', system-ui, sans-serif;
   --fuente-titulo: 'Fraunces', Georgia, serif;
   --fuente-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -257,6 +259,15 @@ input[type='checkbox'] {
 .tabla tbody tr:hover {
   background: #fcfcf8;
 }
+.tabla tbody tr.clicable {
+  cursor: pointer;
+}
+.tabla tbody tr.clicable:hover {
+  background: var(--naranja-100);
+}
+.clicable {
+  cursor: pointer;
+}
 .tabla .acciones {
   width: 1%;
   white-space: nowrap;
@@ -376,4 +387,92 @@ input[type='checkbox'] {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ---------- Detalle (ventana emergente) ---------- */
+.datos-detalle {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px 16px;
+  margin: 0 0 18px;
+}
+.datos-detalle dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+.datos-detalle dd {
+  margin: 0;
+  color: var(--olivo-900);
+}
+.titulo-seccion {
+  margin: 20px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave);
+}
+.tabla-compacta td,
+.tabla-compacta th {
+  padding: 7px 10px;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .datos-detalle {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .datos-detalle dd {
+    margin-bottom: 8px;
+  }
+}
+
+/* ---------- Portada de la explicación del motor ---------- */
+.portada {
+  max-width: 760px;
+  margin: 24px auto;
+  padding: 32px;
+  text-align: center;
+}
+.pasos-portada {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+  font-weight: 600;
+  color: var(--olivo-900);
+}
+.pasos-portada span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: var(--naranja-500);
+  color: #fff;
+}
+.portada p {
+  line-height: 1.6;
+  color: var(--texto-suave);
+}
+
+/* ---------- Secciones plegables de la explicación del motor ---------- */
+.motor-acerca {
+  margin-top: 12px;
+  font-size: 13px;
+}
+.motor-acerca summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--naranja-700);
+}
+.motor-acerca p,
+.motor-acerca li {
+  line-height: 1.5;
+  color: var(--olivo-700);
+}
+.motor-acerca ul {
+  padding-left: 18px;
 }

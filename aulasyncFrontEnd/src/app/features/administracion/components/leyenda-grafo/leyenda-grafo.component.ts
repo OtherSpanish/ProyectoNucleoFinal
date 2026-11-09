@@ -1,9 +1,9 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 
-import { CATALOGO_DIAS } from '../../../../core/constants/catalogos.constants';
 import { ItemLeyendaModel } from '../../../../models/item-leyenda.model';
 import { FiltroAristasModel, ModoColorModel } from '../../../../models/modo-color.model';
 import { TrazaMotorModel } from '../../../../models/traza-motor.model';
+import { CatalogoService } from '../../../../services/catalogo.service';
 import {
   COLOR_ACTUAL,
   COLOR_ARISTA_BLOQUE,
@@ -25,6 +25,8 @@ import {
   styleUrl: './leyenda-grafo.component.css',
 })
 export class LeyendaGrafoComponent {
+  private readonly catalogoService = inject(CatalogoService);
+
   readonly modo = input.required<ModoColorModel>();
   readonly aristas = input.required<FiltroAristasModel>();
   readonly traza = input.required<TrazaMotorModel>();
@@ -42,7 +44,7 @@ export class LeyendaGrafoComponent {
         return [
           { color: COLOR_PENDIENTE, etiqueta: 'Pendiente' },
           { color: COLOR_ACTUAL, etiqueta: 'Elegida en este paso' },
-          { color: COLORES_DIA['MONDAY'], etiqueta: 'Ubicada (color del día)' },
+          { color: COLORES_DIA[0], etiqueta: 'Ubicada (color del día)' },
           { color: COLOR_SIN_UBICAR, etiqueta: 'Sin ubicar' },
         ];
       case 'dia':
@@ -87,8 +89,9 @@ export class LeyendaGrafoComponent {
 
   private dias(): ItemLeyendaModel[] {
     const items: ItemLeyendaModel[] = [];
-    for (const dia of CATALOGO_DIAS) {
-      items.push({ color: COLORES_DIA[dia.valor], etiqueta: dia.etiqueta });
+    const dias = this.catalogoService.opciones('dias');
+    for (let i = 0; i < dias.length; i++) {
+      items.push({ color: COLORES_DIA[i % COLORES_DIA.length], etiqueta: dias[i].etiqueta });
     }
     items.push({ color: COLOR_SIN_UBICAR, etiqueta: 'Sin ubicar' });
     return items;

@@ -7,9 +7,11 @@ import { DocenteModel } from '../../../../models/docente.model';
 import { FiltroGrupoModel } from '../../../../models/filtro-grupo.model';
 import { GrupoModel } from '../../../../models/grupo.model';
 import { SemestreModel } from '../../../../models/semestre.model';
+import { SesionHorarioModel } from '../../../../models/sesion-horario.model';
 import { CursoService } from '../../../../services/curso.service';
 import { DocenteService } from '../../../../services/docente.service';
 import { GrupoService } from '../../../../services/grupo.service';
+import { HorarioService } from '../../../../services/horario.service';
 import { SemestreService } from '../../../../services/semestre.service';
 
 @Component({
@@ -20,6 +22,7 @@ import { SemestreService } from '../../../../services/semestre.service';
 })
 export class GruposComponent implements OnInit {
   private readonly grupoService = inject(GrupoService);
+  private readonly horarioService = inject(HorarioService);
   private readonly cursoService = inject(CursoService);
   private readonly docenteService = inject(DocenteService);
   private readonly semestreService = inject(SemestreService);
@@ -34,6 +37,9 @@ export class GruposComponent implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
   protected readonly grupoInscripcion = signal<GrupoModel | null>(null);
+  protected readonly detalle = signal<GrupoModel | null>(null);
+  protected readonly sesionesDetalle = signal<SesionHorarioModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected filtro: FiltroGrupoModel = { cursoId: null, docenteId: null, semestreId: null };
   protected formulario: GrupoModel = this.crearVacio();
 
@@ -53,6 +59,25 @@ export class GruposComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  /** Ficha del grupo y sus sesiones en el horario guardado (GET /horarios?grupoId=). */
+  verDetalle(grupo: GrupoModel): void {
+    if (grupo.id === null) {
+      return;
+    }
+    this.detalle.set(grupo);
+    this.sesionesDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.grupoService.buscarPorId(grupo.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    const filtro = { semestre: null, cursoId: null, grupoId: grupo.id, docenteId: null, aulaId: null, sedeId: null, soloUbicadas: null };
+    this.horarioService.listar(filtro).subscribe({ next: (lista) => this.sesionesDetalle.set(lista) });
   }
 
   nuevo(): void {

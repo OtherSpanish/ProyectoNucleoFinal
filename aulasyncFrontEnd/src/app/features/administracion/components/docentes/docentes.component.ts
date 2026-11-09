@@ -1,11 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { CATALOGO_DEDICACIONES } from '../../../../core/constants/catalogos.constants';
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
+import { DisponibilidadDocenteModel } from '../../../../models/disponibilidad-docente.model';
 import { DocenteModel } from '../../../../models/docente.model';
 import { EspecialidadModel } from '../../../../models/especialidad.model';
 import { UsuarioModel } from '../../../../models/usuario.model';
+import { CatalogoService } from '../../../../services/catalogo.service';
+import { DisponibilidadService } from '../../../../services/disponibilidad.service';
 import { DocenteService } from '../../../../services/docente.service';
 import { EspecialidadService } from '../../../../services/especialidad.service';
 import { UsuarioService } from '../../../../services/usuario.service';
@@ -18,12 +20,15 @@ import { UsuarioService } from '../../../../services/usuario.service';
 })
 export class DocentesComponent implements OnInit {
   private readonly docenteService = inject(DocenteService);
+  private readonly disponibilidadService = inject(DisponibilidadService);
   private readonly especialidadService = inject(EspecialidadService);
   private readonly usuarioService = inject(UsuarioService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
-  protected readonly dedicaciones = CATALOGO_DEDICACIONES;
+  private readonly catalogoService = inject(CatalogoService);
+
+  protected readonly dedicaciones = computed(() => this.catalogoService.opciones('dedicaciones'));
   protected readonly docentes = signal<DocenteModel[]>([]);
   protected readonly especialidades = signal<EspecialidadModel[]>([]);
   protected readonly usuariosDocentes = signal<UsuarioModel[]>([]);
@@ -31,6 +36,9 @@ export class DocentesComponent implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
   protected readonly docenteDisponibilidad = signal<DocenteModel | null>(null);
+  protected readonly detalle = signal<DocenteModel | null>(null);
+  protected readonly disponibilidadDetalle = signal<DisponibilidadDocenteModel | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected filtroEspecialidadId: number | null = null;
   protected prefijo = '';
   protected formulario: DocenteModel = this.crearVacio();
@@ -53,6 +61,26 @@ export class DocentesComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+  }
+
+  /** Abre la ficha del docente: datos (GET /docentes/{id}) y disponibilidad (GET /docentes/{id}/disponibilidad). */
+  verDetalle(docente: DocenteModel): void {
+    if (docente.id === null) {
+      return;
+    }
+    this.detalle.set(docente);
+    this.disponibilidadDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.docenteService.buscarPorId(docente.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.disponibilidadService.obtener(docente.id).subscribe({
+      next: (datos) => this.disponibilidadDetalle.set(datos),
     });
   }
 

@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { CATALOGO_ROLES } from '../../../../core/constants/catalogos.constants';
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
 import { RolModel } from '../../../../models/rol.model';
 import { UsuarioModel } from '../../../../models/usuario.model';
+import { CatalogoService } from '../../../../services/catalogo.service';
 import { UsuarioService } from '../../../../services/usuario.service';
 
 @Component({
@@ -18,11 +18,15 @@ export class UsuariosComponent implements OnInit {
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
-  protected readonly roles = CATALOGO_ROLES;
+  private readonly catalogoService = inject(CatalogoService);
+
+  protected readonly roles = computed(() => this.catalogoService.opciones('roles'));
   protected readonly usuarios = signal<UsuarioModel[]>([]);
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly detalle = signal<UsuarioModel | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected filtroRol: RolModel | null = null;
   protected formulario: UsuarioModel = this.crearVacio();
 
@@ -38,6 +42,21 @@ export class UsuariosComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+  }
+
+  verDetalle(usuario: UsuarioModel): void {
+    if (usuario.id === null) {
+      return;
+    }
+    this.detalle.set(usuario);
+    this.cargandoDetalle.set(true);
+    this.usuarioService.buscarPorId(usuario.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
     });
   }
 

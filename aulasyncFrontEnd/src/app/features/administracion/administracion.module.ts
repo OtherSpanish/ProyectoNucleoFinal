@@ -13,11 +13,11 @@ import { ExplicacionMotorComponent } from './components/explicacion-motor/explic
 import { GrafoConflictosComponent } from './components/grafo-conflictos/grafo-conflictos.component';
 import { LeyendaGrafoComponent } from './components/leyenda-grafo/leyenda-grafo.component';
 import { PasoDsaturComponent } from './components/paso-dsatur/paso-dsatur.component';
+import { PseudocodigoMotorComponent } from './components/pseudocodigo-motor/pseudocodigo-motor.component';
 import { SedesComponent } from './components/sedes/sedes.component';
 import { SemestresComponent } from './components/semestres/semestres.component';
 import { UsuariosComponent } from './components/usuarios/usuarios.component';
 import { ColorNodoPipe } from './pipes/color-nodo.pipe';
-import { FranjasPorMotivoPipe } from './pipes/franjas-por-motivo.pipe';
 
 /** Pantallas del rol ADMIN: datos maestros de la facultad y explicación del motor. */
 @NgModule({
@@ -33,11 +33,11 @@ import { FranjasPorMotivoPipe } from './pipes/franjas-por-motivo.pipe';
     GrafoConflictosComponent,
     LeyendaGrafoComponent,
     PasoDsaturComponent,
+    PseudocodigoMotorComponent,
     SedesComponent,
     SemestresComponent,
     UsuariosComponent,
     ColorNodoPipe,
-    FranjasPorMotivoPipe,
   ],
   imports: [SharedModule, AdministracionRoutingModule],
 })

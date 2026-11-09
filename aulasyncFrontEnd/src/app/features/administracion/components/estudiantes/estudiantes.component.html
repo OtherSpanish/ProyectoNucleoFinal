@@ -23,15 +23,22 @@
   <div class="tabla-contenedor">
     <table class="tabla">
       <thead>
-        <tr><th>Código</th><th>Nombre</th><th>Correo</th><th></th></tr>
+        <tr><th>Código</th><th>Nombre</th><th>Semestre</th><th>Correo</th><th></th></tr>
       </thead>
       <tbody>
         @for (estudiante of estudiantes(); track estudiante.id) {
-          <tr>
+          <tr class="clicable" (click)="verDetalle(estudiante)">
             <td class="mono">{{ estudiante.codigo }}</td>
             <td><strong>{{ estudiante.nombre }}</strong></td>
+            <td>
+              @if (estudiante.semestreNumero) {
+                <span class="insignia">Semestre {{ estudiante.semestreNumero }}</span>
+              } @else {
+                <span class="insignia insignia-alerta">Sin asignar</span>
+              }
+            </td>
             <td class="texto-suave">{{ estudiante.correo }}</td>
-            <td class="acciones">
+            <td class="acciones" (click)="$event.stopPropagation()">
               <button type="button" class="boton-icono" (click)="editar(estudiante)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
               <button type="button" class="boton-icono peligro" (click)="eliminar(estudiante)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
             </td>
@@ -46,6 +53,15 @@
   <form class="formulario-grilla" (ngSubmit)="guardar()">
     <label class="campo"><span>Código</span><input name="codigo" [(ngModel)]="formulario.codigo" /></label>
     <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo">
+      <span>Semestre que cursa</span>
+      <select name="semestreId" [(ngModel)]="formulario.semestreId">
+        <option [ngValue]="null" disabled>Selecciona el semestre</option>
+        @for (semestre of semestres(); track semestre.id) {
+          <option [ngValue]="semestre.id">{{ semestre.numero }} · {{ semestre.nombre }}</option>
+        }
+      </select>
+    </label>
     <label class="campo"><span>Correo</span><input type="email" name="correo" [(ngModel)]="formulario.correo" /></label>
     <div class="fila-acciones">
       <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
@@ -53,3 +69,23 @@
     </div>
   </form>
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  [subtitulo]="'Estudiante · ' + (detalle()?.codigo ?? '')"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as estudiante) {
+    <dl class="datos-detalle">
+      <dt>Código</dt><dd class="mono">{{ estudiante.codigo }}</dd>
+      <dt>Nombre</dt><dd>{{ estudiante.nombre }}</dd>
+      <dt>Semestre</dt><dd>{{ estudiante.semestreNumero ?? 'Sin asignar' }}</dd>
+      <dt>Correo</dt><dd class="mono">{{ estudiante.correo || '—' }}</dd>
+    </dl>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(estudiante); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

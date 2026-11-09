@@ -25,7 +25,7 @@
     <option [ngValue]="null" disabled>Selecciona un aula</option>
     @for (aula of aulas(); track aula.id) {
       <option [ngValue]="aula.id">
-        {{ aula.nombre }} · {{ aula.sedeNombre }} · {{ aula.capacidad }} cupos · {{ aula.tipo | etiqueta: 'tipoAula' }}
+        {{ aula.nombre }} · {{ aula.sedeNombre }} · {{ aula.capacidad }} cupos · {{ aula.tipo | etiqueta: 'tiposAula' }}
       </option>
     }
   </select>

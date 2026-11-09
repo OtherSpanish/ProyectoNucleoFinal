@@ -1,6 +1,6 @@
 <app-encabezado-pagina
   titulo="Cómo funciona el motor"
-  descripcion="Ejecuta el motor de horarios con los datos actuales y recorre, etapa por etapa, cómo arma el grafo de conflictos, agrupa con conjuntos disjuntos y colorea con DSatur. No guarda nada."
+  descripcion="Recorre con los datos reales cómo el motor arma el grafo de conflictos, agrupa con conjuntos disjuntos y colorea con DSatur. No guarda nada."
 >
   <button type="button" class="boton boton-primario" [disabled]="cargando()" (click)="ejecutar()">
     <app-icono nombre="motor" [tamano]="16" />
@@ -15,6 +15,7 @@
         type="button"
         [class.activa]="$index === indiceEtapa()"
         [class.vista]="$index < indiceEtapa()"
+        [title]="item.titulo"
         (click)="irAEtapa($index)"
       >
         <span class="indice">{{ $index + 1 }}</span>
@@ -23,160 +24,178 @@
     }
   </nav>
 
-  <div class="estudio">
-    <aside class="explicacion tarjeta">
-      <span class="numero-etapa">Etapa {{ indiceEtapa() + 1 }} de {{ etapas.length }}</span>
-      <h2>{{ etapa().titulo }}</h2>
-      <p class="resumen">{{ etapa().resumen }}</p>
-      @if (enDsatur()) {
-        <details class="parrafos" [open]="pasoActual() === 0">
-          <summary>¿Qué hace DSatur?</summary>
-          @for (parrafo of etapa().parrafos; track $index) {
-            <p>{{ parrafo }}</p>
-          }
-        </details>
-      } @else {
-        @for (parrafo of etapa().parrafos; track $index) {
-          <p>{{ parrafo }}</p>
-        }
-      }
-
-      <div class="cifras">
-        @switch (etapa().clave) {
-          @case ('nodos') {
-            <div><strong>{{ datos.nodos.length }}</strong><span>sesiones (nodos)</span></div>
-            <div><strong>{{ datos.gruposProgramados }}</strong><span>grupos abiertos</span></div>
-            <div><strong>{{ datos.gruposNoAbiertos.length }}</strong><span>grupos sin abrir</span></div>
-          }
-          @case ('docente') {
-            <div><strong>{{ datos.aristasPorDocente }}</strong><span>aristas por docente</span></div>
-            <div><strong>{{ datos.totalDocentes }}</strong><span>docentes</span></div>
-          }
-          @case ('grupo') {
-            <div><strong>{{ datos.aristasPorGrupo }}</strong><span>aristas por grupo</span></div>
-            <div><strong>{{ datos.gruposProgramados }}</strong><span>grupos</span></div>
-          }
-          @case ('bloque') {
-            <div><strong>{{ datos.aristasPorBloque }}</strong><span>aristas por bloque</span></div>
-          }
-          @case ('grafo') {
-            <div><strong>{{ datos.totalAristas }}</strong><span>aristas en total</span></div>
-            <div><strong>{{ datos.nodos.length }}</strong><span>nodos</span></div>
-          }
-          @case ('dsu') {
-            <div><strong>{{ datos.totalComponentes }}</strong><span>componentes</span></div>
-            <div><strong>{{ datos.nodos.length }}</strong><span>sesiones agrupadas</span></div>
-          }
-          @case ('dsatur') {
-            <div><strong>{{ pasoActual() }}/{{ datos.pasos.length }}</strong><span>pasos</span></div>
-          }
-          @case ('resultado') {
-            <div class="exito"><strong>{{ datos.sesionesUbicadas }}</strong><span>ubicadas</span></div>
-            <div class="peligro"><strong>{{ datos.sesionesSinUbicar }}</strong><span>sin ubicar</span></div>
-            <div><strong>{{ datos.totalAulas }}</strong><span>aulas disponibles</span></div>
-          }
-        }
-      </div>
-
-      @if (enDsatur()) {
-        <div class="reproductor">
-          <div class="botones">
-            <button type="button" class="boton-icono" (click)="irAPaso(0)" title="Inicio" aria-label="Ir al inicio">⏮</button>
-            <button type="button" class="boton-icono" (click)="irAPaso(pasoActual() - 1)" title="Paso anterior" aria-label="Paso anterior">◀</button>
-            <button type="button" class="boton boton-oscuro reproducir" (click)="alternarReproduccion()">
-              {{ reproduciendo() ? 'Pausar' : 'Reproducir' }}
-            </button>
-            <button type="button" class="boton-icono" (click)="irAPaso(pasoActual() + 1)" title="Paso siguiente" aria-label="Paso siguiente">▶</button>
-            <button type="button" class="boton-icono" (click)="irAPaso(datos.pasos.length)" title="Final" aria-label="Ir al final">⏭</button>
-          </div>
-          <input
-            type="range"
-            min="0"
-            [max]="datos.pasos.length"
-            [value]="pasoActual()"
-            (input)="irAPaso(+$any($event.target).value)"
-            aria-label="Paso de DSatur"
-          />
-          <label class="velocidad">
-            Velocidad
-            <select [ngModel]="velocidad()" (ngModelChange)="cambiarVelocidad($event)">
-              @for (opcion of velocidades; track opcion.valor) {
-                <option [ngValue]="opcion.valor">{{ opcion.etiqueta }}</option>
+  <div class="visual">
+    <section class="escenario">
+      <div class="narracion" aria-live="polite">
+        <div class="texto">
+          <span class="rotulo">Etapa {{ indiceEtapa() + 1 }} · {{ etapa().titulo }}</span>
+          <p>
+            @switch (etapa().clave) {
+              @case ('nodos') {
+                Se crean <strong>{{ datos.nodos.length }} nodos</strong>, uno por cada sesión semanal de los
+                {{ datos.gruposProgramados }} grupos abiertos.
+                @if (datos.gruposNoAbiertos.length > 0) {
+                  {{ datos.gruposNoAbiertos.length }} grupos quedan fuera por no tener el mínimo de inscritos.
+                }
+              }
+              @case ('docente') {
+                <strong>{{ datos.aristasPorDocente }} aristas azules</strong> unen las sesiones que comparten docente: no pueden ir a la misma hora.
+              }
+              @case ('grupo') {
+                <strong>{{ datos.aristasPorGrupo }} aristas naranjas</strong> unen las sesiones de un mismo grupo (mismos estudiantes).
+              }
+              @case ('bloque') {
+                <strong>{{ datos.aristasPorBloque }} aristas moradas</strong> unen materias distintas del mismo bloque (mismo G, semestre igual o vecino).
+              }
+              @case ('grafo') {
+                Grafo completo: <strong>{{ datos.nodos.length }} nodos y {{ datos.totalAristas }} aristas</strong>. Los puntos grandes y oscuros son las sesiones con más conflictos.
+              }
+              @case ('dsu') {
+                El DSU forma <strong>{{ datos.totalComponentes }} componentes</strong>, una por grupo, para que sus sesiones caigan en días distintos. El anillo marca la raíz.
+              }
+              @case ('dsatur') {
+                @if (pasoVisible(); as paso) {
+                  @let nodo = datos.nodos[paso.nodo];
+                  Paso <strong>{{ paso.numero }}/{{ datos.pasos.length }}</strong>: elige
+                  <strong>{{ nodo.cursoCodigo }} G{{ nodo.numeroGrupo }}·s{{ nodo.numeroSesion }}</strong>
+                  ({{ paso.saturacion }}/{{ paso.franjasCandidatas }} franjas bloqueadas, {{ paso.grado }} vecinos)
+                  @if (paso.ubicada) {
+                    → <strong class="ok">{{ paso.diaNombre }} {{ paso.horaInicio | hora }}</strong> en {{ paso.aulaNombre }} ({{ paso.sedeNombre }}).
+                  } @else {
+                    → <strong class="mal">sin franja viable</strong>: {{ paso.causaDescripcion }}
+                  }
+                } @else {
+                  DSatur arranca con todas las sesiones pendientes (gris). En cada paso tomará la más restringida.
+                }
+              }
+              @case ('resultado') {
+                <strong class="ok">{{ datos.sesionesUbicadas }} sesiones ubicadas</strong> y
+                <strong class="mal">{{ datos.sesionesSinUbicar }} sin ubicar</strong>. Cada color es el día que recibió la sesión.
+              }
+            }
+          </p>
+        </div>
+        <div class="opciones">
+          <label>
+            Color
+            <select [ngModel]="modoColor()" (ngModelChange)="modoManual.set($event)" aria-label="Colorear por">
+              @for (modo of modos; track modo.valor) {
+                <option [ngValue]="modo.valor">{{ modo.etiqueta }}</option>
               }
             </select>
           </label>
+          <label class="casilla">
+            <input type="checkbox" [ngModel]="mostrarEtiquetas()" (ngModelChange)="mostrarEtiquetas.set($event)" />
+            Nombres
+          </label>
         </div>
-        <app-paso-dsatur [traza]="datos" [pasoActual]="pasoActual()" (verNodo)="verNodoDelPaso($event)" />
-      }
-
-      @if (etapa().clave === 'nodos' && datos.gruposNoAbiertos.length > 0) {
-        <details class="lista-detalle">
-          <summary>Grupos que no entraron al motor</summary>
-          <ul>
-            @for (grupo of datos.gruposNoAbiertos; track $index) {
-              <li>{{ grupo }}</li>
-            }
-          </ul>
-        </details>
-      }
-      @if (etapa().clave === 'resultado' && datos.avisos.length > 0) {
-        <div class="aviso"><ul>@for (aviso of datos.avisos; track $index) {<li>{{ aviso }}</li>}</ul></div>
-      }
-
-      <div class="navegacion">
-        <button type="button" class="boton boton-secundario" [disabled]="indiceEtapa() === 0" (click)="irAEtapa(indiceEtapa() - 1)">Anterior</button>
-        <button type="button" class="boton boton-primario" [disabled]="indiceEtapa() === etapas.length - 1" (click)="irAEtapa(indiceEtapa() + 1)">Siguiente etapa</button>
       </div>
-    </aside>
 
-    <section class="zona-grafo">
-      <div class="barra-grafo">
-        <label>
-          Colorear por
-          <select [ngModel]="modoColor()" (ngModelChange)="modoManual.set($event)">
-            @for (modo of modos; track modo.valor) {
-              <option [ngValue]="modo.valor">{{ modo.etiqueta }}</option>
-            }
-          </select>
-        </label>
-        <label class="casilla">
-          <input type="checkbox" [ngModel]="mostrarEtiquetas()" (ngModelChange)="mostrarEtiquetas.set($event)" />
-          Mostrar nombres
-        </label>
-        <span class="ayuda">Clic en un punto para ver qué considera · rueda para acercar · arrastra para mover · ← → para avanzar</span>
-      </div>
       <app-grafo-conflictos
         class="grafo"
         [traza]="datos"
         [posiciones]="posiciones()"
         [modoColor]="modoColor()"
         [filtroAristas]="etapa().aristas"
-        [pasoActual]="pasoVisible()"
+        [pasoActual]="pasoActual()"
         [seleccionado]="seleccionado()"
         [mostrarEtiquetas]="mostrarEtiquetas()"
         [marcarRaices]="etapa().clave === 'dsu'"
-        (seleccionar)="seleccionado.set($event)"
+        (seleccionar)="seleccionarNodo($event)"
       />
-      <app-leyenda-grafo [modo]="modoColor()" [aristas]="etapa().aristas" [traza]="datos" [marcarRaices]="etapa().clave === 'dsu'" />
+
+      <app-leyenda-grafo
+        class="leyenda"
+        [modo]="modoColor()"
+        [aristas]="etapa().aristas"
+        [traza]="datos"
+        [marcarRaices]="etapa().clave === 'dsu'"
+      />
     </section>
 
-    <aside class="detalle tarjeta">
-      @if (seleccionado() !== null) {
-        <app-detalle-nodo
-          [traza]="datos"
-          [indice]="seleccionado()!"
-          (seleccionar)="seleccionado.set($event)"
-          (verPaso)="verPasoDeNodo($event)"
-          (cerrar)="seleccionado.set(null)"
-        />
-      } @else {
-        <div class="pista">
-          <app-icono nombre="motor" [tamano]="26" />
-          <h3>Explora un nodo</h3>
-          <p>Cada punto es una sesión de clase. Haz clic en uno para ver con quién choca (docente, grupo, bloque), a qué componente del DSU pertenece y cómo lo evaluó DSatur regla por regla.</p>
-        </div>
-      }
+    <aside class="panel">
+      <div class="pestanas-panel" role="tablist">
+        <button type="button" role="tab" [class.activa]="pestana() === 'algoritmo'" (click)="pestana.set('algoritmo')">Algoritmo</button>
+        <button type="button" role="tab" [class.activa]="pestana() === 'nodo'" [disabled]="seleccionado() === null" (click)="pestana.set('nodo')">
+          Nodo seleccionado
+        </button>
+      </div>
+
+      <div class="contenido-panel">
+        @if (pestana() === 'nodo' && seleccionado() !== null) {
+          <app-detalle-nodo
+            [traza]="datos"
+            [indice]="seleccionado()!"
+            (seleccionar)="seleccionarNodo($event)"
+            (verPaso)="verPasoDeNodo($event)"
+            (cerrar)="seleccionarNodo(null)"
+          />
+        } @else {
+          <app-pseudocodigo-motor [lineasActivas]="lineasActivas()" [lineaPrincipal]="lineaPrincipal()" />
+
+          @if (enDsatur()) {
+            <h3 class="titulo-seccion">Decisión del paso</h3>
+            <app-paso-dsatur [traza]="datos" [pasoActual]="pasoActual()" (verNodo)="seleccionarNodo($event)" />
+          }
+
+          <details class="motor-acerca" [open]="!enDsatur()">
+            <summary>Sobre esta etapa</summary>
+            @for (parrafo of etapa().parrafos; track $index) {
+              <p>{{ parrafo }}</p>
+            }
+          </details>
+
+          @if (etapa().clave === 'nodos' && datos.gruposNoAbiertos.length > 0) {
+            <details class="motor-acerca">
+              <summary>Grupos que no entraron ({{ datos.gruposNoAbiertos.length }})</summary>
+              <ul>
+                @for (grupo of datos.gruposNoAbiertos; track $index) {
+                  <li>{{ grupo }}</li>
+                }
+              </ul>
+            </details>
+          }
+          @if (etapa().clave === 'resultado' && datos.avisos.length > 0) {
+            <div class="aviso"><ul>@for (aviso of datos.avisos; track $index) {<li>{{ aviso }}</li>}</ul></div>
+          }
+          <p class="pista">Haz clic en un punto del grafo para ver qué tiene en cuenta ese nodo.</p>
+        }
+      </div>
     </aside>
+  </div>
+
+  <div class="controles">
+    <div class="botones">
+      <button type="button" class="control" (click)="irAlInicio()" title="Inicio" aria-label="Ir al inicio">⏮</button>
+      <button type="button" class="control" (click)="retroceder()" title="Anterior (←)" aria-label="Anterior">◀</button>
+      <button type="button" class="control reproducir" (click)="alternarReproduccion()" [title]="reproduciendo() ? 'Pausar (espacio)' : 'Reproducir (espacio)'">
+        {{ reproduciendo() ? '❚❚' : '▶' }}
+      </button>
+      <button type="button" class="control" (click)="avanzar()" title="Siguiente (→)" aria-label="Siguiente">▶</button>
+      <button type="button" class="control" (click)="irAlFinal()" title="Final" aria-label="Ir al final">⏭</button>
+    </div>
+    <div class="linea-tiempo">
+      <input
+        type="range"
+        min="0"
+        [max]="ultimaPosicion()"
+        [value]="posicion()"
+        (input)="irAPosicion(+$any($event.target).value)"
+        aria-label="Línea de tiempo del algoritmo"
+      />
+      <span class="estado-tiempo">
+        @if (enDsatur() && pasoActual() > 0) {
+          DSatur · paso {{ pasoActual() }} de {{ totalPasos() }}
+        } @else {
+          Etapa {{ indiceEtapa() + 1 }} de {{ etapas.length }}
+        }
+      </span>
+    </div>
+    <div class="velocidad" role="group" aria-label="Velocidad">
+      @for (opcion of velocidades; track opcion.valor) {
+        <button type="button" [class.activa]="velocidad() === opcion.valor" (click)="velocidad.set(opcion.valor)">{{ opcion.etiqueta }}</button>
+      }
+    </div>
   </div>
 } @else if (cargando()) {
   <div class="cargando">Ejecutando el motor y armando el grafo…</div>
@@ -188,7 +207,7 @@
       <div><span>3</span>Grupos → DSU</div>
       <div><span>4</span>DSatur → franjas</div>
     </div>
-    <p>El motor convierte el problema del horario en un grafo y lo colorea: cada color es una franja de la semana. Ejecútalo para verlo con los datos reales de la facultad.</p>
+    <p>El motor convierte el horario en un grafo y lo colorea: cada color es una franja de la semana. Ejecútalo para recorrerlo paso a paso con los datos actuales.</p>
     <button type="button" class="boton boton-primario" (click)="ejecutar()"><app-icono nombre="motor" [tamano]="16" /> Ejecutar motor</button>
   </div>
 }

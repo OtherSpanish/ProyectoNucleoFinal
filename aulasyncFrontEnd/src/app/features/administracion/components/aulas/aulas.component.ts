@@ -1,12 +1,15 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { CATALOGO_TIPOS_AULA } from '../../../../core/constants/catalogos.constants';
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
 import { AulaModel } from '../../../../models/aula.model';
 import { FiltroAulaModel } from '../../../../models/filtro-aula.model';
+import { FiltroHorarioModel } from '../../../../models/filtro-horario.model';
 import { SedeModel } from '../../../../models/sede.model';
+import { SesionHorarioModel } from '../../../../models/sesion-horario.model';
 import { AulaService } from '../../../../services/aula.service';
+import { CatalogoService } from '../../../../services/catalogo.service';
+import { HorarioService } from '../../../../services/horario.service';
 import { SedeService } from '../../../../services/sede.service';
 
 @Component({
@@ -17,16 +20,22 @@ import { SedeService } from '../../../../services/sede.service';
 })
 export class AulasComponent implements OnInit {
   private readonly aulaService = inject(AulaService);
+  private readonly horarioService = inject(HorarioService);
   private readonly sedeService = inject(SedeService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
-  protected readonly tipos = CATALOGO_TIPOS_AULA;
+  private readonly catalogoService = inject(CatalogoService);
+
+  protected readonly tipos = computed(() => this.catalogoService.opciones('tiposAula'));
   protected readonly aulas = signal<AulaModel[]>([]);
   protected readonly sedes = signal<SedeModel[]>([]);
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly detalle = signal<AulaModel | null>(null);
+  protected readonly sesionesDetalle = signal<SesionHorarioModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected filtro: FiltroAulaModel = { sedeId: null, tipo: null, capacidadMinima: null, soloDisponibles: null };
   protected formulario: AulaModel = this.crearVacia();
 
@@ -43,6 +52,26 @@ export class AulasComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+  }
+
+  /** Ficha del aula y su ocupación en el horario guardado (GET /horarios?aulaId=). */
+  verDetalle(aula: AulaModel): void {
+    if (aula.id === null) {
+      return;
+    }
+    this.detalle.set(aula);
+    this.sesionesDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.aulaService.buscarPorId(aula.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.horarioService.listar(this.filtroHorario(aula.id)).subscribe({
+      next: (lista) => this.sesionesDetalle.set(lista),
     });
   }
 
@@ -88,6 +117,10 @@ export class AulasComponent implements OnInit {
         this.cargar();
       },
     });
+  }
+
+  private filtroHorario(aulaId: number): FiltroHorarioModel {
+    return { semestre: null, cursoId: null, grupoId: null, docenteId: null, aulaId, sedeId: null, soloUbicadas: true };
   }
 
   private crearVacia(): AulaModel {

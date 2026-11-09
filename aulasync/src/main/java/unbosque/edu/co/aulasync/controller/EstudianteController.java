@@ -87,15 +87,16 @@ public class EstudianteController {
 	/**
 	 * Crea un estudiante.
 	 *
-	 * @param dto código, nombre y correo opcional.
+	 * @param dto código, nombre, semestreId y correo opcional.
 	 * @return 201 con el estudiante creado.
-	 * @throws CampoObligatorioException si falta un dato (400).
-	 * @throws CodigoDuplicadoException  si el código ya existe (409).
+	 * @throws CampoObligatorioException    si falta un dato (400).
+	 * @throws CodigoDuplicadoException     si el código ya existe (409).
+	 * @throws EntidadNoEncontradaException si el semestre no existe (404).
 	 */
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<EstudianteDTO> crear(@RequestBody EstudianteDTO dto)
-			throws CampoObligatorioException, CodigoDuplicadoException {
+			throws CampoObligatorioException, CodigoDuplicadoException, EntidadNoEncontradaException {
 		return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.crear(dto));
 	}
 

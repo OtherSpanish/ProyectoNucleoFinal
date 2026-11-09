@@ -3,7 +3,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
 import { EstudianteModel } from '../../../../models/estudiante.model';
+import { SemestreModel } from '../../../../models/semestre.model';
 import { EstudianteService } from '../../../../services/estudiante.service';
+import { SemestreService } from '../../../../services/semestre.service';
 
 @Component({
   selector: 'app-estudiantes',
@@ -13,6 +15,7 @@ import { EstudianteService } from '../../../../services/estudiante.service';
 })
 export class EstudiantesComponent implements OnInit {
   private readonly estudianteService = inject(EstudianteService);
+  private readonly semestreService = inject(SemestreService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
@@ -20,10 +23,14 @@ export class EstudiantesComponent implements OnInit {
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly semestres = signal<SemestreModel[]>([]);
+  protected readonly detalle = signal<EstudianteModel | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected prefijo = '';
   protected formulario: EstudianteModel = this.crearVacio();
 
   ngOnInit(): void {
+    this.semestreService.listar().subscribe({ next: (lista) => this.semestres.set(lista) });
     this.cargar();
   }
 
@@ -45,6 +52,21 @@ export class EstudiantesComponent implements OnInit {
   limpiarBusqueda(): void {
     this.prefijo = '';
     this.cargar();
+  }
+
+  verDetalle(estudiante: EstudianteModel): void {
+    if (estudiante.id === null) {
+      return;
+    }
+    this.detalle.set(estudiante);
+    this.cargandoDetalle.set(true);
+    this.estudianteService.buscarPorId(estudiante.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
   }
 
   nuevo(): void {
@@ -94,6 +116,6 @@ export class EstudiantesComponent implements OnInit {
   }
 
   private crearVacio(): EstudianteModel {
-    return { id: null, codigo: '', nombre: '', correo: '' };
+    return { id: null, codigo: '', nombre: '', correo: '', semestreId: null };
   }
 }

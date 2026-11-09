@@ -40,7 +40,7 @@ export class HorarioComponent implements OnInit {
   protected readonly movimiento = signal<MovimientoSesionModel | null>(null);
   protected readonly resultadoGeneracion = signal<ResultadoGeneracionModel | null>(null);
   protected readonly resultadoSincronizacion = signal<ResultadoSincronizacionModel | null>(null);
-  protected semestre: number | null = 1;
+  protected semestre: number | null = null;
   protected prefijo = '';
 
   ngOnInit(): void {

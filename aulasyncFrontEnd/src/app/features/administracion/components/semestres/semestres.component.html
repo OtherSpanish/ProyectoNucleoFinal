@@ -1,4 +1,4 @@
-<app-encabezado-pagina titulo="Semestres" descripcion="Los 9 semestres de la carrera. El horario evita choques entre semestres consecutivos.">
+<app-encabezado-pagina titulo="Semestres" descripcion="Semestres de la carrera. El horario evita choques entre semestres consecutivos.">
   <button type="button" class="boton boton-primario" (click)="nuevo()">
     <app-icono nombre="mas" [tamano]="16" /> Nuevo semestre
   </button>
@@ -11,11 +11,11 @@
 } @else {
   <div class="lista">
     @for (semestre of semestres(); track semestre.id) {
-      <article class="semestre" [attr.data-semestre]="semestre.numero">
+      <article class="semestre clicable" [attr.data-semestre]="semestre.numero" (click)="verDetalle(semestre)">
         <span class="numero">{{ semestre.numero }}</span>
         <div class="nombre">{{ semestre.nombre }}</div>
-        <button type="button" class="boton-icono" (click)="editar(semestre)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
-        <button type="button" class="boton-icono peligro" (click)="eliminar(semestre)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+        <button type="button" class="boton-icono" (click)="$event.stopPropagation(); editar(semestre)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+        <button type="button" class="boton-icono peligro" (click)="$event.stopPropagation(); eliminar(semestre)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
       </article>
     }
   </div>
@@ -23,7 +23,7 @@
 
 <app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo semestre' : 'Editar semestre'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
   <form class="formulario-grilla" (ngSubmit)="guardar()">
-    <label class="campo"><span>Número (1 a 9)</span><input type="number" name="numero" [(ngModel)]="formulario.numero" /></label>
+    <label class="campo"><span>Número</span><input type="number" name="numero" [(ngModel)]="formulario.numero" /></label>
     <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" placeholder="Primer semestre" /></label>
     <div class="fila-acciones">
       <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
@@ -31,3 +31,35 @@
     </div>
   </form>
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  [subtitulo]="'Semestre ' + (detalle()?.numero ?? '')"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as semestre) {
+    <dl class="datos-detalle">
+      <dt>Número</dt><dd>{{ semestre.numero }}</dd>
+      <dt>Nombre</dt><dd>{{ semestre.nombre }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Cursos del semestre</h3>
+    @if (cursosDetalle(); as cursos) {
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Código</th><th>Curso</th><th>Intensidad</th></tr></thead>
+          <tbody>
+            @for (curso of cursos; track curso.id) {
+              <tr><td class="mono">{{ curso.codigo }}</td><td>{{ curso.nombre }}</td><td>{{ curso.intensidad | etiqueta: 'intensidades' }}</td></tr>
+            } @empty {
+              <tr><td colspan="3" class="texto-suave">Sin cursos.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando cursos…</div>
+    }
+  }
+</app-ventana-detalle>

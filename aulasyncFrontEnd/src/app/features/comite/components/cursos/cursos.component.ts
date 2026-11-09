@@ -1,13 +1,15 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { CATALOGO_INTENSIDADES, CATALOGO_TIPOS_AULA } from '../../../../core/constants/catalogos.constants';
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
 import { CursoModel } from '../../../../models/curso.model';
 import { EspecialidadModel } from '../../../../models/especialidad.model';
+import { GrupoModel } from '../../../../models/grupo.model';
 import { SemestreModel } from '../../../../models/semestre.model';
+import { CatalogoService } from '../../../../services/catalogo.service';
 import { CursoService } from '../../../../services/curso.service';
 import { EspecialidadService } from '../../../../services/especialidad.service';
+import { GrupoService } from '../../../../services/grupo.service';
 import { SemestreService } from '../../../../services/semestre.service';
 
 @Component({
@@ -18,19 +20,25 @@ import { SemestreService } from '../../../../services/semestre.service';
 })
 export class CursosComponent implements OnInit {
   private readonly cursoService = inject(CursoService);
+  private readonly grupoService = inject(GrupoService);
   private readonly semestreService = inject(SemestreService);
   private readonly especialidadService = inject(EspecialidadService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
-  protected readonly tiposAula = CATALOGO_TIPOS_AULA;
-  protected readonly intensidades = CATALOGO_INTENSIDADES;
+  private readonly catalogoService = inject(CatalogoService);
+
+  protected readonly tiposAula = computed(() => this.catalogoService.opciones('tiposAula'));
+  protected readonly intensidades = computed(() => this.catalogoService.opciones('intensidades'));
   protected readonly cursos = signal<CursoModel[]>([]);
   protected readonly semestres = signal<SemestreModel[]>([]);
   protected readonly especialidades = signal<EspecialidadModel[]>([]);
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly detalle = signal<CursoModel | null>(null);
+  protected readonly gruposDetalle = signal<GrupoModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected filtroSemestreId: number | null = null;
   protected filtroEspecialidadId: number | null = null;
   protected prefijo = '';
@@ -54,6 +62,25 @@ export class CursosComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+  }
+
+  verDetalle(curso: CursoModel): void {
+    if (curso.id === null) {
+      return;
+    }
+    this.detalle.set(curso);
+    this.gruposDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.cursoService.buscarPorId(curso.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.grupoService.listar({ cursoId: curso.id, docenteId: null, semestreId: null }).subscribe({
+      next: (lista) => this.gruposDetalle.set(lista),
     });
   }
 
@@ -108,7 +135,7 @@ export class CursosComponent implements OnInit {
       nombre: '',
       semestreId: null,
       especialidadId: null,
-      tipoAula: 'CONVENCIONAL',
+      tipoAula: null,
       intensidad: null,
       nucleoComun: false,
     };

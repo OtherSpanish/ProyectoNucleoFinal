@@ -40,6 +40,7 @@ export class ConsultaHorarioComponent implements OnInit {
   protected readonly aulas = signal<AulaModel[]>([]);
   protected readonly sedes = signal<SedeModel[]>([]);
   protected readonly cargando = signal(true);
+  protected readonly detalle = signal<SesionHorarioModel | null>(null);
   protected filtro: FiltroHorarioModel = this.crearFiltroVacio();
 
   ngOnInit(): void {

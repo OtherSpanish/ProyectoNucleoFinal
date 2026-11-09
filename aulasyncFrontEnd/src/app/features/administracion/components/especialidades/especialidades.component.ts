@@ -2,7 +2,11 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
+import { CursoModel } from '../../../../models/curso.model';
+import { DocenteModel } from '../../../../models/docente.model';
 import { EspecialidadModel } from '../../../../models/especialidad.model';
+import { CursoService } from '../../../../services/curso.service';
+import { DocenteService } from '../../../../services/docente.service';
 import { EspecialidadService } from '../../../../services/especialidad.service';
 
 @Component({
@@ -13,6 +17,8 @@ import { EspecialidadService } from '../../../../services/especialidad.service';
 })
 export class EspecialidadesComponent implements OnInit {
   private readonly especialidadService = inject(EspecialidadService);
+  private readonly docenteService = inject(DocenteService);
+  private readonly cursoService = inject(CursoService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
@@ -20,6 +26,10 @@ export class EspecialidadesComponent implements OnInit {
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly detalle = signal<EspecialidadModel | null>(null);
+  protected readonly docentesDetalle = signal<DocenteModel[] | null>(null);
+  protected readonly cursosDetalle = signal<CursoModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected formulario: EspecialidadModel = this.crearVacia();
 
   ngOnInit(): void {
@@ -35,6 +45,26 @@ export class EspecialidadesComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  /** Ficha de la especialidad con sus docentes y los cursos que la exigen. */
+  verDetalle(especialidad: EspecialidadModel): void {
+    if (especialidad.id === null) {
+      return;
+    }
+    this.detalle.set(especialidad);
+    this.docentesDetalle.set(null);
+    this.cursosDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.especialidadService.buscarPorId(especialidad.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.docenteService.listar(especialidad.id).subscribe({ next: (lista) => this.docentesDetalle.set(lista) });
+    this.cursoService.listar(null, especialidad.id).subscribe({ next: (lista) => this.cursosDetalle.set(lista) });
   }
 
   nueva(): void {

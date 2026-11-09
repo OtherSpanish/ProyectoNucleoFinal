@@ -12,7 +12,7 @@
   <span class="insignia">Semestre {{ n.semestre }}</span>
   <span class="insignia">{{ n.duracionHoras }} h</span>
   <span class="insignia">{{ n.estudiantes }} estudiantes</span>
-  <span class="insignia">{{ n.tipoAula | etiqueta: 'tipoAula' }}</span>
+  <span class="insignia">{{ n.tipoAula | etiqueta: 'tiposAula' }}</span>
   @if (n.nucleoComun) {
     <span class="insignia insignia-alerta">Núcleo común</span>
   }
@@ -47,7 +47,7 @@
 </section>
 
 <section class="factor" data-tipo="bloque">
-  <div class="titulo"><span class="marca"></span>Bloque G{{ n.numeroGrupo }} (semestres {{ n.semestre - 1 || 1 }}–{{ n.semestre + 1 }})</div>
+  <div class="titulo"><span class="marca"></span>Bloque G{{ n.numeroGrupo }}</div>
   <p>Comparte estudiantes con {{ n.vecinosBloque.length }} sesión(es) de otras materias del mismo bloque, así que no pueden coincidir.</p>
   <div class="chips">
     @for (j of n.vecinosBloque; track j) {
@@ -61,10 +61,7 @@
 <section class="factor" data-tipo="aula">
   <div class="titulo"><span class="marca"></span>Sede y aula</div>
   <p>
-    Necesita un aula {{ n.tipoAula | etiqueta: 'tipoAula' }} libre con capacidad para {{ n.estudiantes }} estudiantes en una sede permitida.
-    @if (n.nucleoComun && n.semestre === 1) {
-      Por ser núcleo común de primer semestre, aplica la regla de la sede de primer semestre y sus días por bloque.
-    }
+    Necesita un aula {{ n.tipoAula | etiqueta: 'tiposAula' }} libre con capacidad para {{ n.estudiantes }} estudiantes en una sede permitida.
   </p>
 </section>
 

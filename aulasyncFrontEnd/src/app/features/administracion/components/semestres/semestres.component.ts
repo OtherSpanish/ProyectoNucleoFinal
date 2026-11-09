@@ -2,7 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 
 import { ConfirmacionService } from '../../../../core/services/confirmacion.service';
 import { NotificacionService } from '../../../../core/services/notificacion.service';
+import { CursoModel } from '../../../../models/curso.model';
 import { SemestreModel } from '../../../../models/semestre.model';
+import { CursoService } from '../../../../services/curso.service';
 import { SemestreService } from '../../../../services/semestre.service';
 
 @Component({
@@ -13,6 +15,7 @@ import { SemestreService } from '../../../../services/semestre.service';
 })
 export class SemestresComponent implements OnInit {
   private readonly semestreService = inject(SemestreService);
+  private readonly cursoService = inject(CursoService);
   private readonly notificacionService = inject(NotificacionService);
   private readonly confirmacionService = inject(ConfirmacionService);
 
@@ -20,6 +23,9 @@ export class SemestresComponent implements OnInit {
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly panelAbierto = signal(false);
+  protected readonly detalle = signal<SemestreModel | null>(null);
+  protected readonly cursosDetalle = signal<CursoModel[] | null>(null);
+  protected readonly cargandoDetalle = signal(false);
   protected formulario: SemestreModel = this.crearVacio();
 
   ngOnInit(): void {
@@ -35,6 +41,23 @@ export class SemestresComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  verDetalle(semestre: SemestreModel): void {
+    if (semestre.id === null) {
+      return;
+    }
+    this.detalle.set(semestre);
+    this.cursosDetalle.set(null);
+    this.cargandoDetalle.set(true);
+    this.semestreService.buscarPorId(semestre.id).subscribe({
+      next: (datos) => {
+        this.detalle.set(datos);
+        this.cargandoDetalle.set(false);
+      },
+      error: () => this.cargandoDetalle.set(false),
+    });
+    this.cursoService.listar(semestre.id, null).subscribe({ next: (lista) => this.cursosDetalle.set(lista) });
   }
 
   nuevo(): void {

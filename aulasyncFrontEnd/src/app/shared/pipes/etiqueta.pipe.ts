@@ -1,15 +1,22 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 
-import { CATALOGOS } from '../../core/constants/catalogos.constants';
+import { CatalogosModel } from '../../models/catalogos.model';
+import { CatalogoService } from '../../services/catalogo.service';
 
-/** Traduce el valor de un enum del backend a su etiqueta: 'SALA_COMPUTO' | etiqueta:'tipoAula'. */
-@Pipe({ name: 'etiqueta', standalone: false })
+/**
+ * Nombre para mostrar de un valor de enum, tomado de GET /api/catalogos:
+ * 'SALA_COMPUTO' | etiqueta: 'tiposAula' → «Sala de cómputo».
+ * Es impuro para refrescarse cuando llegan los catálogos.
+ */
+@Pipe({ name: 'etiqueta', standalone: false, pure: false })
 export class EtiquetaPipe implements PipeTransform {
-  transform(valor: string | null | undefined, catalogo: string): string {
+  private readonly catalogoService = inject(CatalogoService);
+
+  transform(valor: string | null | undefined, catalogo: keyof Omit<CatalogosModel, 'horasJornada'>): string {
     if (!valor) {
       return '—';
     }
-    for (const opcion of CATALOGOS[catalogo] ?? []) {
+    for (const opcion of this.catalogoService.opciones(catalogo)) {
       if (opcion.valor === valor) {
         return opcion.etiqueta;
       }

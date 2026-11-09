@@ -1,11 +1,12 @@
-import { Component, model } from '@angular/core';
+import { Component, computed, inject, model } from '@angular/core';
 
-import { CATALOGO_DIAS, HORAS_JORNADA } from '../../../core/constants/catalogos.constants';
 import { FranjaHorariaModel } from '../../../models/franja-horaria.model';
+import { CatalogoService } from '../../../services/catalogo.service';
 
 /**
- * Tabla editable de franjas (día, hora inicio, hora fin). No valida nada:
- * el backend responde si una franja es inválida o se traslapa.
+ * Tabla editable de franjas (día, hora inicio, hora fin). Los días y las horas
+ * salen de GET /api/catalogos. No valida nada: el backend responde si una
+ * franja es inválida o se traslapa.
  */
 @Component({
   selector: 'app-editor-franjas',
@@ -16,11 +17,13 @@ import { FranjaHorariaModel } from '../../../models/franja-horaria.model';
 export class EditorFranjasComponent {
   readonly franjas = model.required<FranjaHorariaModel[]>();
 
-  protected readonly dias = CATALOGO_DIAS;
-  protected readonly horas = HORAS_JORNADA;
+  private readonly catalogoService = inject(CatalogoService);
+
+  protected readonly dias = computed(() => this.catalogoService.opciones('dias'));
+  protected readonly horas = computed(() => this.catalogoService.catalogos().horasJornada);
 
   agregar(): void {
-    const nueva: FranjaHorariaModel = { id: null, dia: 'MONDAY', horaInicio: 7, horaFin: 9 };
+    const nueva: FranjaHorariaModel = { id: null, dia: null, horaInicio: null, horaFin: null };
     this.franjas.set([...this.franjas(), nueva]);
   }
 

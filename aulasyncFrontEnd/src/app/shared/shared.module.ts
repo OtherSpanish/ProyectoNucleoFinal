@@ -11,7 +11,9 @@ import { EstadoVacioComponent } from './components/estado-vacio/estado-vacio.com
 import { IconoComponent } from './components/icono/icono.component';
 import { NotificacionesComponent } from './components/notificaciones/notificaciones.component';
 import { PanelLateralComponent } from './components/panel-lateral/panel-lateral.component';
+import { PiePaginaComponent } from './components/pie-pagina/pie-pagina.component';
 import { TarjetaSesionComponent } from './components/tarjeta-sesion/tarjeta-sesion.component';
+import { VentanaDetalleComponent } from './components/ventana-detalle/ventana-detalle.component';
 import { EtiquetaPipe } from './pipes/etiqueta.pipe';
 import { FilaCalendarioPipe } from './pipes/fila-calendario.pipe';
 import { HoraPipe } from './pipes/hora.pipe';
@@ -26,7 +28,9 @@ const DECLARACIONES = [
   IconoComponent,
   NotificacionesComponent,
   PanelLateralComponent,
+  PiePaginaComponent,
   TarjetaSesionComponent,
+  VentanaDetalleComponent,
   EtiquetaPipe,
   FilaCalendarioPipe,
   HoraPipe,

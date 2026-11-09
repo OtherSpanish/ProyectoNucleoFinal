@@ -2,7 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 
 import { TrazaMotorModel } from '../../../../models/traza-motor.model';
 
-/** Explica la decisión que tomó DSatur en el paso actual. */
+/** Resumen compacto de la decisión de DSatur en el paso actual. */
 @Component({
   selector: 'app-paso-dsatur',
   standalone: false,

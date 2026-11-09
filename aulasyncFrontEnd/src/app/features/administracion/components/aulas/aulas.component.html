@@ -18,7 +18,7 @@
     <span>Tipo</span>
     <select [(ngModel)]="filtro.tipo" (ngModelChange)="cargar()">
       <option [ngValue]="null">Todos</option>
-      @for (tipo of tipos; track tipo.valor) {
+      @for (tipo of tipos(); track tipo.valor) {
         <option [ngValue]="tipo.valor">{{ tipo.etiqueta }}</option>
       }
     </select>
@@ -45,10 +45,10 @@
       </thead>
       <tbody>
         @for (aula of aulas(); track aula.id) {
-          <tr>
+          <tr class="clicable" (click)="verDetalle(aula)">
             <td><strong>{{ aula.nombre }}</strong></td>
             <td>{{ aula.sedeNombre }}</td>
-            <td>{{ aula.tipo | etiqueta: 'tipoAula' }}</td>
+            <td>{{ aula.tipo | etiqueta: 'tiposAula' }}</td>
             <td class="mono">{{ aula.capacidad }}</td>
             <td>
               @if (aula.disponible) {
@@ -57,7 +57,7 @@
                 <span class="insignia insignia-peligro">No disponible</span>
               }
             </td>
-            <td class="acciones">
+            <td class="acciones" (click)="$event.stopPropagation()">
               <button type="button" class="boton-icono" (click)="editar(aula)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
               <button type="button" class="boton-icono peligro" (click)="eliminar(aula)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
             </td>
@@ -85,7 +85,7 @@
         <span>Tipo</span>
         <select name="tipo" [(ngModel)]="formulario.tipo">
           <option [ngValue]="null" disabled>Tipo</option>
-          @for (tipo of tipos; track tipo.valor) {
+          @for (tipo of tipos(); track tipo.valor) {
             <option [ngValue]="tipo.valor">{{ tipo.etiqueta }}</option>
           }
         </select>
@@ -99,3 +99,46 @@
     </div>
   </form>
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="'Aula ' + (detalle()?.nombre ?? '')"
+  [subtitulo]="detalle()?.sedeNombre ?? ''"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as aula) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ aula.nombre }}</dd>
+      <dt>Sede</dt><dd>{{ aula.sedeNombre }}</dd>
+      <dt>Tipo</dt><dd>{{ aula.tipo | etiqueta: 'tiposAula' }}</dd>
+      <dt>Capacidad</dt><dd>{{ aula.capacidad }} estudiantes</dd>
+      <dt>Estado</dt><dd>{{ aula.disponible ? 'Disponible para programar' : 'No disponible' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Clases programadas en esta aula</h3>
+    @if (sesionesDetalle(); as sesiones) {
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Día</th><th>Hora</th><th>Curso</th><th>Docente</th></tr></thead>
+          <tbody>
+            @for (sesion of sesiones; track sesion.id) {
+              <tr>
+                <td>{{ sesion.diaNombre }}</td>
+                <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
+                <td><span class="mono">{{ sesion.cursoCodigo }}</span> G{{ sesion.numeroGrupo }}</td>
+                <td>{{ sesion.docenteNombre }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="texto-suave">No tiene clases en el horario guardado.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando ocupación…</div>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(aula); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

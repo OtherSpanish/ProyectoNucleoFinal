@@ -79,7 +79,7 @@
       </thead>
       <tbody>
         @for (sesion of sesiones(); track sesion.id) {
-          <tr [class.sin-ubicar]="!sesion.ubicada">
+          <tr class="clicable" [class.sin-ubicar]="!sesion.ubicada" (click)="detalle.set(sesion)">
             <td>{{ sesion.diaNombre ?? '—' }}</td>
             <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
             <td><span class="mono">{{ sesion.cursoCodigo }}</span> {{ sesion.cursoNombre }}</td>
@@ -101,3 +101,26 @@
     </table>
   </div>
 }
+
+<app-ventana-detalle
+  [titulo]="detalle()?.cursoNombre ?? ''"
+  [subtitulo]="(detalle()?.cursoCodigo ?? '') + ' · G' + (detalle()?.numeroGrupo ?? '') + ' · sesión ' + (detalle()?.numeroSesion ?? '')"
+  [abierta]="detalle() !== null"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as sesion) {
+    <dl class="datos-detalle">
+      <dt>Curso</dt><dd><span class="mono">{{ sesion.cursoCodigo }}</span> {{ sesion.cursoNombre }}</dd>
+      <dt>Grupo</dt><dd>G{{ sesion.numeroGrupo }} · sesión {{ sesion.numeroSesion }} · semestre {{ sesion.semestre }}</dd>
+      <dt>Docente</dt><dd>{{ sesion.docenteNombre }}</dd>
+      <dt>Duración</dt><dd>{{ sesion.duracionHoras }} horas</dd>
+      @if (sesion.ubicada) {
+        <dt>Día y hora</dt><dd>{{ sesion.diaNombre }} {{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</dd>
+        <dt>Aula</dt><dd>{{ sesion.aulaNombre }} · {{ sesion.sedeNombre }}</dd>
+      } @else {
+        <dt>Estado</dt><dd>Sin ubicar</dd>
+        <dt>Causa</dt><dd>{{ sesion.detalleCausa ?? '—' }}</dd>
+      }
+    </dl>
+  }
+</app-ventana-detalle>

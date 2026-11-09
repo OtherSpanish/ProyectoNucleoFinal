@@ -7,7 +7,7 @@
   <div class="cargando">Cargando disponibilidad…</div>
 } @else if (disponibilidad(); as datos) {
   <div class="estadisticas">
-    <div class="estadistica"><strong>{{ datos.dedicacion | etiqueta: 'dedicacion' }}</strong><span>Dedicación</span></div>
+    <div class="estadistica"><strong>{{ datos.dedicacion | etiqueta: 'dedicaciones' }}</strong><span>Dedicación</span></div>
     <div class="estadistica"><strong>{{ datos.horasMaximas }} h</strong><span>Tope semanal</span></div>
     <div class="estadistica destacada"><strong>{{ datos.horasDisponibles }} h</strong><span>Horas declaradas</span></div>
   </div>
@@ -17,7 +17,7 @@
       <tbody>
         @for (franja of datos.franjas; track $index) {
           <tr>
-            <td><strong>{{ franja.dia | etiqueta: 'dia' }}</strong></td>
+            <td><strong>{{ franja.dia | etiqueta: 'dias' }}</strong></td>
             <td class="mono">{{ franja.horaInicio | hora }}</td>
             <td class="mono">{{ franja.horaFin | hora }}</td>
           </tr>

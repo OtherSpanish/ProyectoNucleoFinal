@@ -9,7 +9,7 @@
     <span>Rol</span>
     <select [(ngModel)]="filtroRol" (ngModelChange)="cargar()">
       <option [ngValue]="null">Todos</option>
-      @for (rol of roles; track rol.valor) {
+      @for (rol of roles(); track rol.valor) {
         <option [ngValue]="rol.valor">{{ rol.etiqueta }}</option>
       }
     </select>
@@ -28,11 +28,11 @@
       </thead>
       <tbody>
         @for (usuario of usuarios(); track usuario.id) {
-          <tr>
+          <tr class="clicable" (click)="verDetalle(usuario)">
             <td><strong>{{ usuario.nombre }}</strong></td>
             <td class="mono">{{ usuario.correo }}</td>
-            <td><span class="insignia" [attr.data-rol]="usuario.rol">{{ usuario.rol | etiqueta: 'rol' }}</span></td>
-            <td class="acciones">
+            <td><span class="insignia" [attr.data-rol]="usuario.rol">{{ usuario.rol | etiqueta: 'roles' }}</span></td>
+            <td class="acciones" (click)="$event.stopPropagation()">
               <button type="button" class="boton-icono" (click)="editar(usuario)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
               <button type="button" class="boton-icono peligro" (click)="eliminar(usuario)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
             </td>
@@ -56,7 +56,7 @@
       <span>Rol</span>
       <select name="rol" [(ngModel)]="formulario.rol">
         <option [ngValue]="null" disabled>Selecciona un rol</option>
-        @for (rol of roles; track rol.valor) {
+        @for (rol of roles(); track rol.valor) {
           <option [ngValue]="rol.valor">{{ rol.etiqueta }}</option>
         }
       </select>
@@ -67,3 +67,23 @@
     </div>
   </form>
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  subtitulo="Usuario"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as usuario) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ usuario.nombre }}</dd>
+      <dt>Correo</dt><dd class="mono">{{ usuario.correo }}</dd>
+      <dt>Rol</dt><dd>{{ usuario.rol | etiqueta: 'roles' }}</dd>
+      <dt>Identificador</dt><dd class="mono">{{ usuario.id }}</dd>
+    </dl>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(usuario); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

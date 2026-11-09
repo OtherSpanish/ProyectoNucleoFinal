@@ -11,10 +11,10 @@
 } @else {
   <div class="cuadricula">
     @for (especialidad of especialidades(); track especialidad.id) {
-      <article class="tarjeta">
+      <article class="tarjeta clicable" (click)="verDetalle(especialidad)">
         <h3>{{ especialidad.nombre }}</h3>
         <p class="texto-suave">{{ especialidad.descripcion || 'Sin descripción.' }}</p>
-        <div class="fila-acciones">
+        <div class="fila-acciones" (click)="$event.stopPropagation()">
           <button type="button" class="boton-icono" (click)="editar(especialidad)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
           <button type="button" class="boton-icono peligro" (click)="eliminar(especialidad)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
         </div>
@@ -33,3 +33,42 @@
     </div>
   </form>
 </app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  subtitulo="Especialidad"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as especialidad) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ especialidad.nombre }}</dd>
+      <dt>Descripción</dt><dd>{{ especialidad.descripcion || 'Sin descripción.' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Docentes con esta especialidad</h3>
+    @if (docentesDetalle(); as docentes) {
+      <div class="lista-insignias">
+        @for (docente of docentes; track docente.id) {
+          <span class="insignia">{{ docente.usuario.nombre }}</span>
+        } @empty {
+          <span class="texto-suave">Ningún docente la tiene.</span>
+        }
+      </div>
+    } @else {
+      <div class="cargando">Cargando…</div>
+    }
+    <h3 class="titulo-seccion">Cursos que la exigen</h3>
+    @if (cursosDetalle(); as cursos) {
+      <div class="lista-insignias">
+        @for (curso of cursos; track curso.id) {
+          <span class="insignia insignia-alerta">{{ curso.codigo }} · {{ curso.nombre }}</span>
+        } @empty {
+          <span class="texto-suave">Ningún curso la exige.</span>
+        }
+      </div>
+    } @else {
+      <div class="cargando">Cargando…</div>
+    }
+  }
+</app-ventana-detalle>
