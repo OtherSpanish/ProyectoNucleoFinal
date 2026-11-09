@@ -1,12 +1,12 @@
 package unbosque.edu.co.aulasync.exception;
 
 /**
- * Se lanza cuando se busca o se elimina un registro que no existe.
+ * Se lanza cuando se busca, modifica o elimina un registro que no existe.
  *
  * <p>
  * Solo la lanza
- * {@link LanzadorException#verificarEntidadExiste(Object, String, Long)}. El
- * {@link GlobalExceptionHandler} la traduce en una respuesta HTTP 404.
+ * {@link LanzadorException#verificarEntidadExiste(Object, String, Long)}, y
+ * la misma clase la traduce en una respuesta HTTP 404.
  * </p>
  *
  * @version 1.0

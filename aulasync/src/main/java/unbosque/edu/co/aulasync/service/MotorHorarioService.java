@@ -1,336 +1,265 @@
 package unbosque.edu.co.aulasync.service;
 
 import java.time.DayOfWeek;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import unbosque.edu.co.aulasync.dto.RespuestaDemoDto;
-import unbosque.edu.co.aulasync.dto.RespuestaGeneracionDto;
-import unbosque.edu.co.aulasync.dto.SesionDemoDto;
-import unbosque.edu.co.aulasync.dto.SesionGeneradaDto;
-import unbosque.edu.co.aulasync.model.Aula;
-import unbosque.edu.co.aulasync.model.Curso;
-import unbosque.edu.co.aulasync.model.Docente;
-import unbosque.edu.co.aulasync.model.FranjaDocente;
-import unbosque.edu.co.aulasync.model.Seccion;
-import unbosque.edu.co.aulasync.model.SesionHorario;
+import unbosque.edu.co.aulasync.entity.Aula;
+import unbosque.edu.co.aulasync.entity.Curso;
+import unbosque.edu.co.aulasync.entity.Docente;
+import unbosque.edu.co.aulasync.entity.FranjaDocente;
+import unbosque.edu.co.aulasync.entity.FranjaSede;
+import unbosque.edu.co.aulasync.entity.Grupo;
+import unbosque.edu.co.aulasync.entity.Sede;
+import unbosque.edu.co.aulasync.model.CausaDescartada;
+import unbosque.edu.co.aulasync.model.ResultadoGeneracion;
+import unbosque.edu.co.aulasync.model.SesionGenerada;
 import unbosque.edu.co.aulasync.motor.AulaMotor;
 import unbosque.edu.co.aulasync.motor.DocenteMotor;
-import unbosque.edu.co.aulasync.motor.GeneradorFranjas;
+import unbosque.edu.co.aulasync.motor.MotivoRechazo;
 import unbosque.edu.co.aulasync.motor.MotorHorario;
+import unbosque.edu.co.aulasync.motor.SedeMotor;
 import unbosque.edu.co.aulasync.motor.Sesion;
-import unbosque.edu.co.aulasync.motor.TipoAula;
 import unbosque.edu.co.aulasync.repository.AulaRepository;
-import unbosque.edu.co.aulasync.repository.DocenteRepository;
-import unbosque.edu.co.aulasync.repository.SeccionRepository;
-import unbosque.edu.co.aulasync.repository.SesionHorarioRepository;
+import unbosque.edu.co.aulasync.repository.GrupoRepository;
+import unbosque.edu.co.aulasync.repository.SedeRepository;
 
 /**
- * Servicio que conecta la persistencia con el motor de generación de horarios.
+ * Puente entre la base de datos y el {@link MotorHorario}.
  *
  * <p>
- * Lee las secciones, docentes y aulas de la base de datos, las traduce a los
- * objetos del motor ({@link Sesion}, {@link DocenteMotor}, {@link AulaMotor}),
- * ejecuta {@link MotorHorario} y convierte el resultado en DTOs para el
- * controlador. El motor no conoce Spring ni JPA: este servicio es el único
- * puente entre ambos mundos.
+ * Lee los datos maestros, los convierte a los objetos planos del motor (que no
+ * conoce JPA), lo ejecuta y traduce el resultado a {@link ResultadoGeneracion}
+ * para la API. Solo entran al motor los grupos abiertos (al menos
+ * {@value GrupoService#MIN_INSCRITOS} inscritos) y las aulas disponibles.
  * </p>
+ *
+ * @version 1.0
  */
 @Service
 public class MotorHorarioService {
 
-	private static final int TOPE_TIEMPO_COMPLETO = 40;
-	private static final int TOPE_TRES_CUARTOS = 30;
-	private static final int TOPE_MEDIO_TIEMPO = 20;
-	private static final int TOPE_UN_CUARTO = 10;
+	private static final Locale ESPANOL = Locale.of("es", "CO");
 
-	private final SeccionRepository seccionRepo;
-	private final DocenteRepository docenteRepo;
-	private final AulaRepository aulaRepo;
-	private final SesionHorarioRepository sesionHorarioRepo;
+	private final GrupoRepository grupoRepository;
+	private final SedeRepository sedeRepository;
+	private final AulaRepository aulaRepository;
+	private final DisponibilidadService disponibilidadService;
 
 	/**
-	 * Crea el servicio con los repositorios que necesita.
+	 * Crea el servicio con sus dependencias.
 	 *
-	 * @param seccionRepo repositorio de secciones
-	 * @param docenteRepo repositorio de docentes
-	 * @param aulaRepo    repositorio de aulas
-	 * @param sesionHorarioRepo repositorio del horario guardado
+	 * @param grupoRepository       lectura de grupos.
+	 * @param sedeRepository        lectura de sedes y sus franjas.
+	 * @param aulaRepository        lectura de aulas.
+	 * @param disponibilidadService franjas de disponibilidad de los docentes.
 	 */
-	public MotorHorarioService(SeccionRepository seccionRepo, DocenteRepository docenteRepo, AulaRepository aulaRepo,
-			SesionHorarioRepository sesionHorarioRepo) {
-		this.seccionRepo = seccionRepo;
-		this.docenteRepo = docenteRepo;
-		this.aulaRepo = aulaRepo;
-		this.sesionHorarioRepo = sesionHorarioRepo;
+	public MotorHorarioService(GrupoRepository grupoRepository, SedeRepository sedeRepository,
+			AulaRepository aulaRepository, DisponibilidadService disponibilidadService) {
+		this.grupoRepository = grupoRepository;
+		this.sedeRepository = sedeRepository;
+		this.aulaRepository = aulaRepository;
+		this.disponibilidadService = disponibilidadService;
 	}
 
 	/**
-	 * Ejecuta el motor con un conjunto fijo de siete sesiones en memoria (el caso
-	 * del informe de ingeniería). No usa la base de datos; sirve para comprobar que
-	 * el motor y el servidor funcionan.
+	 * Ejecuta el motor con los datos actuales y devuelve el resultado sin
+	 * guardar nada.
 	 *
-	 * @return sesiones ubicadas y sin ubicar del caso de demostración
-	 */
-	public RespuestaDemoDto generarDemo() {
-		List<Sesion> sesiones = List.of(new Sesion(1, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(2, 1, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(3, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(4, 2, 1, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(5, 3, 2, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(6, 3, 2, 10, 2, TipoAula.CONVENCIONAL, 44),
-				new Sesion(7, 4, 2, 20, 4, TipoAula.SALA_COMPUTO, 44));
-
-		Map<Integer, DocenteMotor> docentes = Map.of(1, new DocenteMotor(1, TOPE_TIEMPO_COMPLETO, null), 2,
-				new DocenteMotor(2, TOPE_TIEMPO_COMPLETO, null));
-		List<AulaMotor> aulas = List.of(new AulaMotor(1, 45, TipoAula.CONVENCIONAL),
-				new AulaMotor(2, 45, TipoAula.SALA_COMPUTO));
-
-		MotorHorario.Resultado r = new MotorHorario(sesiones, docentes, aulas, GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
-
-		List<SesionDemoDto> ubicadas = new ArrayList<>();
-		for (Sesion s : r.getUbicadas()) {
-			ubicadas.add(aDemoDto(s));
-		}
-
-		List<SesionDemoDto> sinUbicar = new ArrayList<>();
-		for (Sesion s : r.getSinUbicar()) {
-			sinUbicar.add(aDemoDto(s));
-		}
-
-		return new RespuestaDemoDto(ubicadas, sinUbicar);
-	}
-
-	/**
-	 * Genera el horario a partir de los datos maestros guardados en la base de
-	 * datos.
-	 *
-	 * <p>
-	 * Crea una sesión por cada sesión semanal de cada sección, aplica la
-	 * disponibilidad y el tope de horas de cada docente según su dedicación, usa el
-	 * número de estudiantes del grupo como capacidad requerida del aula, y ejecuta
-	 * el motor.
-	 * </p>
-	 *
-	 * @return sesiones ubicadas y sin ubicar, estas últimas con causa y desglose
+	 * @return sesiones ubicadas y sin ubicar, grupos no abiertos y avisos.
 	 */
 	@Transactional(readOnly = true)
-	public RespuestaGeneracionDto generarHorario() {
-		Map<Integer, Seccion> seccionPorClave = new HashMap<>();
-		List<Sesion> sesiones = construirSesiones(seccionPorClave);
-
-		Map<Integer, String> nombreDocente = new HashMap<>();
-		Map<Integer, DocenteMotor> docentes = construirDocentes(nombreDocente);
-
-		Map<Integer, String> nombreAula = new HashMap<>();
-		List<AulaMotor> aulas = construirAulas(nombreAula);
-
-		MotorHorario.Resultado r = new MotorHorario(sesiones, docentes, aulas, GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
-
-		List<SesionGeneradaDto> ubicadas = new ArrayList<>();
-		for (Sesion s : r.getUbicadas()) {
-			ubicadas.add(aGeneradaDto(s, seccionPorClave, nombreDocente, nombreAula));
-		}
-
-		List<SesionGeneradaDto> sinUbicar = new ArrayList<>();
-		for (Sesion s : r.getSinUbicar()) {
-			sinUbicar.add(aGeneradaDto(s, seccionPorClave, nombreDocente, nombreAula));
-		}
-
-		return new RespuestaGeneracionDto(ubicadas, sinUbicar);
-	}
-
-	/**
-	 * Ejecuta el motor igual que {@link #generarHorario()} pero guarda el
-	 * resultado: reemplaza el horario guardado por una sesión persistida por cada
-	 * sesión semanal de cada sección, ubicada o no. Sobre ese horario guardado
-	 * trabaja el Comité con drag and drop.
-	 */
-	@Transactional
-	public void generarYGuardarHorario() {
-		Map<Integer, Seccion> seccionPorClave = new HashMap<>();
-		List<Sesion> sesiones = construirSesiones(seccionPorClave);
-		Map<Integer, DocenteMotor> docentes = construirDocentes(new HashMap<>());
-		List<AulaMotor> aulas = construirAulas(new HashMap<>());
-
-		MotorHorario.Resultado r = new MotorHorario(sesiones, docentes, aulas, GeneradorFranjas.Parametros.POR_DEFECTO)
-				.generar();
-
-		Map<Long, Aula> aulaPorId = aulaRepo.findAll().stream().collect(Collectors.toMap(Aula::getId, a -> a));
-
-		List<SesionHorario> nuevas = new ArrayList<>();
-		for (Sesion s : r.getUbicadas()) {
-			SesionHorario sh = new SesionHorario();
-			sh.setSeccion(seccionPorClave.get(s.getClaveCurso()));
-			sh.setDia(s.getFranja().getDia());
-			sh.setHoraInicio(s.getFranja().getHoraInicio());
-			sh.setAula(aulaPorId.get((long) s.getAula().getId()));
-			nuevas.add(sh);
-		}
-		for (Sesion s : r.getSinUbicar()) {
-			SesionHorario sh = new SesionHorario();
-			sh.setSeccion(seccionPorClave.get(s.getClaveCurso()));
-			sh.setCausa(s.getCausaSinUbicar() == null ? "SIN_UBICAR" : s.getCausaSinUbicar().name());
-			nuevas.add(sh);
-		}
-
-		sesionHorarioRepo.deleteAll();
-		sesionHorarioRepo.flush();
-		sesionHorarioRepo.saveAll(nuevas);
-	}
-
-	// ---------- Construcción de objetos del motor ----------
-
-	/**
-	 * Crea las sesiones del motor: una por cada sesión semanal de cada sección.
-	 * Todas las sesiones de una misma sección comparten la clave de curso (el
-	 * identificador de la sección), que el motor usa para impedir dos sesiones del
-	 * mismo curso el mismo día.
-	 *
-	 * @param seccionPorClave mapa que se llena con la sección correspondiente a
-	 *                        cada clave
-	 * @return lista de sesiones por ubicar
-	 */
-	private List<Sesion> construirSesiones(Map<Integer, Seccion> seccionPorClave) {
+	public ResultadoGeneracion generar() {
+		Map<Long, Grupo> gruposPorId = new HashMap<>();
+		Map<Long, DocenteMotor> docentes = new HashMap<>();
+		List<String> noAbiertos = new ArrayList<>();
 		List<Sesion> sesiones = new ArrayList<>();
-		int idSesion = 1;
-		for (Seccion sec : seccionRepo.findAll()) {
-			Curso curso = sec.getCurso();
-			seccionPorClave.put(sec.getId().intValue(), sec);
-			for (int k = 0; k < curso.getSesionesSemana(); k++) {
-				sesiones.add(new Sesion(idSesion++, sec.getId().intValue(), sec.getDocente().getId().intValue(),
-						sec.getGrupo().getId().intValue(), curso.getDuracionHoras(), curso.getTipoAula(),
-						sec.getGrupo().getEstudiantes()));
+
+		for (Grupo grupo : grupoRepository.findAllByOrderByCursoSemestreNumeroAscCursoNombreAscNumeroAsc()) {
+			int inscritos = grupo.getEstudiantes().size();
+			Curso curso = grupo.getCurso();
+			if (inscritos < GrupoService.MIN_INSCRITOS) {
+				noAbiertos.add(curso.getCodigo() + " " + curso.getNombre() + " G" + grupo.getNumero() + ": "
+						+ inscritos + " inscritos (mínimo " + GrupoService.MIN_INSCRITOS + ").");
+				continue;
+			}
+			gruposPorId.put(grupo.getId(), grupo);
+			agregarDocente(grupo.getDocente(), docentes);
+			int cantidad = curso.getIntensidad().getSesionesSemana();
+			for (int i = 1; i <= cantidad; i++) {
+				sesiones.add(new Sesion(grupo.getId(), i, curso.getId(), curso.getCodigo(), grupo.getNumero(),
+						curso.getSemestre().getNumero(), curso.isNucleoComun(), grupo.getDocente().getId(),
+						curso.getIntensidad().getDuracionHoras(), curso.getTipoAula(), inscritos));
 			}
 		}
-		return sesiones;
+
+		Map<Long, String> nombresSedes = new HashMap<>();
+		List<SedeMotor> sedes = construirSedes(nombresSedes);
+		List<AulaMotor> aulas = construirAulas();
+
+		MotorHorario motor = new MotorHorario(sesiones, new ArrayList<>(docentes.values()), sedes, aulas);
+		MotorHorario.Resultado resultado = motor.generar();
+
+		List<SesionGenerada> ubicadas = new ArrayList<>();
+		for (Sesion sesion : resultado.getUbicadas()) {
+			ubicadas.add(convertir(sesion, gruposPorId, nombresSedes));
+		}
+		List<SesionGenerada> sinUbicar = new ArrayList<>();
+		for (Sesion sesion : resultado.getSinUbicar()) {
+			sinUbicar.add(convertir(sesion, gruposPorId, nombresSedes));
+		}
+		ordenarUbicadas(ubicadas);
+		ordenarSinUbicar(sinUbicar);
+
+		return new ResultadoGeneracion(gruposPorId.size(), noAbiertos, ubicadas, sinUbicar, resultado.getAvisos());
 	}
 
 	/**
-	 * Convierte los docentes persistidos en docentes del motor, con su tope de
-	 * horas semanales según la dedicación y su disponibilidad por día y hora. Un
-	 * docente sin franjas declaradas se considera siempre disponible.
+	 * Nombre en español de un día, con la primera letra en mayúscula.
 	 *
-	 * @param nombreDocente mapa que se llena con el nombre de cada docente por
-	 *                      identificador
-	 * @return docentes del motor, indexados por identificador
+	 * @param dia día de la semana.
+	 * @return por ejemplo "Lunes".
 	 */
-	private Map<Integer, DocenteMotor> construirDocentes(Map<Integer, String> nombreDocente) {
-		Map<Integer, DocenteMotor> docentes = new HashMap<>();
-		for (Docente d : docenteRepo.findAll()) {
-			Map<DayOfWeek, Set<Integer>> disponibilidad = null;
-			if (!d.getFranjas().isEmpty()) {
-				disponibilidad = new EnumMap<>(DayOfWeek.class);
-				for (FranjaDocente f : d.getFranjas()) {
-					Set<Integer> horas = disponibilidad.get(f.getDia());
-					if (horas == null) {
-						horas = new HashSet<>();
-						disponibilidad.put(f.getDia(), horas);
-					}
-					for (int h = f.getHoraInicio(); h < f.getHoraFin(); h++) {
-						horas.add(h);
-					}
-				}
-			}
-			docentes.put(d.getId().intValue(),
-					new DocenteMotor(d.getId().intValue(), topeHoras(d.getDedicacion()), disponibilidad));
-			nombreDocente.put(d.getId().intValue(), d.getNombre());
-		}
-		return docentes;
+	public static String nombreDia(DayOfWeek dia) {
+		String nombre = dia.getDisplayName(TextStyle.FULL, ESPANOL);
+		return nombre.substring(0, 1).toUpperCase(ESPANOL) + nombre.substring(1);
 	}
 
-	/**
-	 * Convierte las aulas persistidas en aulas del motor.
-	 *
-	 * @param nombreAula mapa que se llena con el nombre de cada aula por
-	 *                   identificador
-	 * @return aulas del motor
-	 */
-	private List<AulaMotor> construirAulas(Map<Integer, String> nombreAula) {
+	// ------------------------------------------------------------------
+	// Construcción de la entrada del motor
+	// ------------------------------------------------------------------
+
+	private void agregarDocente(Docente docente, Map<Long, DocenteMotor> docentes) {
+		if (docentes.containsKey(docente.getId())) {
+			return;
+		}
+		DocenteMotor motor = new DocenteMotor(docente.getId(), docente.getDedicacion().getHorasMaximas());
+		for (FranjaDocente franja : disponibilidadService.listarEntidades(docente.getId())) {
+			motor.habilitar(franja.getDia(), franja.getHoraInicio(), franja.getHoraFin());
+		}
+		docentes.put(docente.getId(), motor);
+	}
+
+	private List<SedeMotor> construirSedes(Map<Long, String> nombres) {
+		List<SedeMotor> sedes = new ArrayList<>();
+		for (Sede sede : sedeRepository.findAllByOrderByNombreAsc()) {
+			SedeMotor motor = new SedeMotor(sede.getId(), sede.getNombre(), sede.isExclusivaPrimerSemestre(),
+					sede.getDiasPrimerSemestre());
+			for (FranjaSede franja : sede.getFranjas()) {
+				motor.habilitar(franja.getDia(), franja.getHoraInicio(), franja.getHoraFin());
+			}
+			sedes.add(motor);
+			nombres.put(sede.getId(), sede.getNombre());
+		}
+		return sedes;
+	}
+
+	private List<AulaMotor> construirAulas() {
 		List<AulaMotor> aulas = new ArrayList<>();
-		for (Aula a : aulaRepo.findAll()) {
-			aulas.add(new AulaMotor(a.getId().intValue(), a.getCapacidad(), a.getTipo()));
-			nombreAula.put(a.getId().intValue(), a.getNombre());
+		for (Aula aula : aulaRepository.findAllByOrderBySedeNombreAscNombreAsc()) {
+			if (aula.isDisponible()) {
+				aulas.add(new AulaMotor(aula.getId(), aula.getNombre(), aula.getCapacidad(), aula.getTipo(),
+						aula.getSede().getId()));
+			}
 		}
 		return aulas;
 	}
 
-	/**
-	 * Traduce el tipo de dedicación de un docente a su tope de horas de clase por
-	 * semana.
-	 *
-	 * @param dedicacion {@code TIEMPO_COMPLETO}, {@code TRES_CUARTOS},
-	 *                   {@code MEDIO_TIEMPO} o {@code UN_CUARTO}
-	 * @return tope de horas semanales; si la dedicación es nula o desconocida, el
-	 *         de un cuarto de tiempo
-	 */
-	public static int topeHoras(String dedicacion) {
-		if (dedicacion == null) {
-			return TOPE_UN_CUARTO;
+	// ------------------------------------------------------------------
+	// Conversión del resultado
+	// ------------------------------------------------------------------
+
+	private SesionGenerada convertir(Sesion sesion, Map<Long, Grupo> grupos, Map<Long, String> nombresSedes) {
+		Grupo grupo = grupos.get(sesion.getGrupoId());
+		SesionGenerada salida = new SesionGenerada();
+		salida.setGrupoId(sesion.getGrupoId());
+		salida.setNumeroSesion(sesion.getNumeroSesion());
+		salida.setCursoId(sesion.getCursoId());
+		salida.setCursoCodigo(sesion.getCursoCodigo());
+		salida.setCursoNombre(grupo.getCurso().getNombre());
+		salida.setSemestre(sesion.getSemestre());
+		salida.setNumeroGrupo(sesion.getNumeroGrupo());
+		salida.setNucleoComun(sesion.isNucleoComun());
+		salida.setDocenteId(sesion.getDocenteId());
+		salida.setDocenteNombre(grupo.getDocente().getUsuario().getNombre());
+		salida.setEstudiantes(sesion.getEstudiantes());
+		salida.setDuracionHoras(sesion.getDuracionHoras());
+
+		if (sesion.getFranja() != null) {
+			salida.setDia(sesion.getFranja().getDia());
+			salida.setDiaNombre(nombreDia(sesion.getFranja().getDia()));
+			salida.setHoraInicio(sesion.getFranja().getHoraInicio());
+			salida.setHoraFin(sesion.getFranja().getHoraInicio() + sesion.getDuracionHoras());
+			salida.setAulaId(sesion.getAula().getId());
+			salida.setAulaNombre(sesion.getAula().getNombre());
+			salida.setSedeId(sesion.getFranja().getSedeId());
+			salida.setSedeNombre(nombresSedes.get(sesion.getFranja().getSedeId()));
+		} else {
+			MotivoRechazo causa = sesion.getCausaSinUbicar();
+			salida.setCausa(causa);
+			if (causa != null) {
+				salida.setCausaDescripcion(causa.getDescripcion());
+			}
+			salida.setDesglose(construirDesglose(sesion.getDesgloseCausas()));
 		}
-		if (dedicacion.equals("TIEMPO_COMPLETO")) {
-			return TOPE_TIEMPO_COMPLETO;
-		}
-		if (dedicacion.equals("TRES_CUARTOS")) {
-			return TOPE_TRES_CUARTOS;
-		}
-		if (dedicacion.equals("MEDIO_TIEMPO")) {
-			return TOPE_MEDIO_TIEMPO;
-		}
-		return TOPE_UN_CUARTO;
+		return salida;
 	}
 
-	// ---------- Conversión a DTO ----------
-
-	/**
-	 * Convierte una sesión del motor en el DTO de la demostración.
-	 *
-	 * @param s sesión del motor
-	 * @return DTO con identificadores numéricos
-	 */
-	private SesionDemoDto aDemoDto(Sesion s) {
-		return new SesionDemoDto(s.getId(), s.getClaveCurso(),
-				s.getFranja() == null ? null : s.getFranja().getDia().toString(),
-				s.getFranja() == null ? null : s.getFranja().getHoraInicio(),
-				s.getAula() == null ? null : s.getAula().getId(),
-				s.getCausaSinUbicar() == null ? null : s.getCausaSinUbicar().name());
+	private List<CausaDescartada> construirDesglose(Map<MotivoRechazo, Integer> causas) {
+		List<CausaDescartada> desglose = new ArrayList<>();
+		for (Map.Entry<MotivoRechazo, Integer> entrada : causas.entrySet()) {
+			desglose.add(new CausaDescartada(entrada.getKey(), entrada.getKey().getDescripcion(),
+					entrada.getValue()));
+		}
+		Collections.sort(desglose, new Comparator<CausaDescartada>() {
+			@Override
+			public int compare(CausaDescartada a, CausaDescartada b) {
+				return Integer.compare(b.getFranjas(), a.getFranjas());
+			}
+		});
+		return desglose;
 	}
 
-	/**
-	 * Convierte una sesión del motor en el DTO del horario generado, reemplazando
-	 * identificadores por nombres legibles.
-	 *
-	 * @param s               sesión del motor
-	 * @param seccionPorClave secciones indexadas por la clave de curso de la sesión
-	 * @param nombreDocente   nombres de docente por identificador
-	 * @param nombreAula      nombres de aula por identificador
-	 * @return DTO con nombres, franja, aula, causa y desglose
-	 */
-	private SesionGeneradaDto aGeneradaDto(Sesion s, Map<Integer, Seccion> seccionPorClave,
-			Map<Integer, String> nombreDocente, Map<Integer, String> nombreAula) {
-		Seccion sec = seccionPorClave.get(s.getClaveCurso());
+	private void ordenarUbicadas(List<SesionGenerada> sesiones) {
+		Collections.sort(sesiones, new Comparator<SesionGenerada>() {
+			@Override
+			public int compare(SesionGenerada a, SesionGenerada b) {
+				int porSemestre = Integer.compare(a.getSemestre(), b.getSemestre());
+				if (porSemestre != 0) {
+					return porSemestre;
+				}
+				int porDia = a.getDia().compareTo(b.getDia());
+				if (porDia != 0) {
+					return porDia;
+				}
+				return Integer.compare(a.getHoraInicio(), b.getHoraInicio());
+			}
+		});
+	}
 
-		Map<String, Integer> desglose = new LinkedHashMap<>();
-		for (Map.Entry<MotorHorario.Motivo, Integer> e : s.getDesgloseCausas().entrySet()) {
-			desglose.put(e.getKey().name(), e.getValue());
-		}
-
-		return new SesionGeneradaDto(s.getId(), sec.getCurso().getNombre(), nombreDocente.get(s.getDocenteId()),
-				sec.getGrupo().getNombre(), s.getFranja() == null ? null : s.getFranja().getDia().toString(),
-				s.getFranja() == null ? null : s.getFranja().getHoraInicio(), s.getDuracionHoras(),
-				s.getAula() == null ? null : nombreAula.get(s.getAula().getId()),
-				s.getCausaSinUbicar() == null ? null : s.getCausaSinUbicar().name(), desglose);
+	private void ordenarSinUbicar(List<SesionGenerada> sesiones) {
+		Collections.sort(sesiones, new Comparator<SesionGenerada>() {
+			@Override
+			public int compare(SesionGenerada a, SesionGenerada b) {
+				int porSemestre = Integer.compare(a.getSemestre(), b.getSemestre());
+				if (porSemestre != 0) {
+					return porSemestre;
+				}
+				int porCurso = a.getCursoCodigo().compareTo(b.getCursoCodigo());
+				if (porCurso != 0) {
+					return porCurso;
+				}
+				return Integer.compare(a.getNumeroGrupo(), b.getNumeroGrupo());
+			}
+		});
 	}
 }

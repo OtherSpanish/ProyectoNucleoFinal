@@ -1,78 +1,81 @@
 package unbosque.edu.co.aulasync.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import unbosque.edu.co.aulasync.dto.LoginRequestDto;
-import unbosque.edu.co.aulasync.dto.LoginResponseDto;
-import unbosque.edu.co.aulasync.dto.UsuarioResponseDto;
-import unbosque.edu.co.aulasync.exception.AccesoDenegadoException;
-import unbosque.edu.co.aulasync.exception.EntidadNoEncontradaException;
+import unbosque.edu.co.aulasync.dto.UsuarioDTO;
+import unbosque.edu.co.aulasync.entity.Usuario;
+import unbosque.edu.co.aulasync.exception.CampoObligatorioException;
+import unbosque.edu.co.aulasync.exception.CredencialesInvalidasException;
 import unbosque.edu.co.aulasync.exception.LanzadorException;
-import unbosque.edu.co.aulasync.exception.NoAutenticadoException;
-import unbosque.edu.co.aulasync.model.Usuario;
-import unbosque.edu.co.aulasync.repository.UsuarioRepository;
-import unbosque.edu.co.aulasync.seguridad.ContrasenaService;
-import unbosque.edu.co.aulasync.seguridad.Rol;
-import unbosque.edu.co.aulasync.seguridad.TokenService;
+import unbosque.edu.co.aulasync.model.RespuestaLogin;
+import unbosque.edu.co.aulasync.security.JwtService;
 
-/** Inicio de sesión y consulta del usuario autenticado. */
+/**
+ * Lógica de autenticación: inicio de sesión y consulta del usuario actual.
+ *
+ * <p>
+ * No toca repositorios: consulta los usuarios a través de
+ * {@link UsuarioService}.
+ * </p>
+ *
+ * @version 1.0
+ */
 @Service
-@Transactional(readOnly = true)
 public class AuthService {
 
-	private static final String CREDENCIALES = "Correo o contraseña incorrectos.";
+	private static final String TIPO_TOKEN = "Bearer";
+	private static final long MILIS_POR_SEGUNDO = 1000L;
 
-	private final UsuarioRepository usuarioRepo;
-	private final ContrasenaService contrasenas;
-	private final TokenService tokens;
+	private final UsuarioService usuarioService;
+	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
 
-	public AuthService(UsuarioRepository usuarioRepo, ContrasenaService contrasenas, TokenService tokens) {
-		this.usuarioRepo = usuarioRepo;
-		this.contrasenas = contrasenas;
-		this.tokens = tokens;
+	/**
+	 * Crea el servicio con sus dependencias.
+	 *
+	 * @param usuarioService  servicio de usuarios.
+	 * @param passwordEncoder cifrador de contraseñas.
+	 * @param jwtService      generador de tokens.
+	 */
+	public AuthService(UsuarioService usuarioService, PasswordEncoder passwordEncoder, JwtService jwtService) {
+		this.usuarioService = usuarioService;
+		this.passwordEncoder = passwordEncoder;
+		this.jwtService = jwtService;
 	}
 
 	/**
-	 * Verifica las credenciales y emite un token. Si la contraseña guardada aún
-	 * estaba en texto plano (usuarios antiguos), la cifra en este momento.
+	 * Valida correo y contraseña y, si son correctos, genera el token de sesión.
 	 *
-	 * @param dto correo y contraseña
-	 * @return token y datos del usuario
-	 * @throws NoAutenticadoException si las credenciales son incorrectas
-	 * @throws AccesoDenegadoException si el usuario no tiene un rol válido
+	 * @param dto datos de acceso; solo se usan {@code correo} y {@code password}.
+	 * @return token, vigencia y datos del usuario sin contraseña.
+	 * @throws CampoObligatorioException      si falta el correo o la contraseña.
+	 * @throws CredencialesInvalidasException si el correo no existe o la
+	 *                                        contraseña no coincide.
 	 */
-	@Transactional(rollbackFor = Exception.class)
-	public LoginResponseDto login(LoginRequestDto dto) throws NoAutenticadoException, AccesoDenegadoException {
-		if (dto == null || dto.correo() == null || dto.password() == null) {
-			throw new NoAutenticadoException(CREDENCIALES);
-		}
-		Usuario usuario = usuarioRepo.findByCorreoIgnoreCase(dto.correo().trim()).orElse(null);
-		if (usuario == null || !contrasenas.coincide(dto.password(), usuario.getPassword())) {
-			throw new NoAutenticadoException(CREDENCIALES);
-		}
-		Rol rol = Rol.desde(usuario.getRol());
-		if (rol == null) {
-			throw new AccesoDenegadoException("Tu usuario no tiene un rol válido. Contacta al administrador.");
-		}
-		if (!contrasenas.estaCifrada(usuario.getPassword())) {
-			usuario.setPassword(contrasenas.cifrar(dto.password()));
-			usuarioRepo.save(usuario);
-		}
-		return new LoginResponseDto(tokens.emitir(usuario.getId(), rol), usuario.getId(), usuario.getNombre(),
-				usuario.getCorreo(), rol.name());
+	public RespuestaLogin iniciarSesion(UsuarioDTO dto)
+			throws CampoObligatorioException, CredencialesInvalidasException {
+		LanzadorException.verificarCampoObligatorio(dto.getCorreo(), "correo");
+		LanzadorException.verificarCampoObligatorio(dto.getPassword(), "password");
+
+		Usuario usuario = usuarioService.buscarEntidadPorCorreo(dto.getCorreo());
+		boolean validas = usuario != null && passwordEncoder.matches(dto.getPassword(), usuario.getPassword());
+		LanzadorException.verificarCredenciales(validas);
+
+		String token = jwtService.generarToken(usuario.getCorreo(), usuario.getRol());
+		long segundos = jwtService.getDuracionMilis() / MILIS_POR_SEGUNDO;
+		return new RespuestaLogin(token, TIPO_TOKEN, segundos, usuarioService.convertirADTO(usuario));
 	}
 
 	/**
-	 * Devuelve los datos del usuario autenticado.
+	 * Devuelve los datos del usuario dueño del token.
 	 *
-	 * @param id identificador del usuario
-	 * @return usuario sin contraseña
-	 * @throws EntidadNoEncontradaException si ya no existe
+	 * @param correo correo del usuario autenticado.
+	 * @return datos del usuario sin contraseña.
 	 */
-	public UsuarioResponseDto perfil(Long id) throws EntidadNoEncontradaException {
-		Usuario usuario = usuarioRepo.findById(id).orElse(null);
-		LanzadorException.verificarEntidadExiste(usuario, "Usuario", id);
-		return new UsuarioResponseDto(usuario.getId(), usuario.getNombre(), usuario.getCorreo(), usuario.getRol());
+	public UsuarioDTO obtenerUsuarioActual(String correo) {
+		Usuario usuario = usuarioService.buscarEntidadPorCorreo(correo);
+		LanzadorException.verificarUsuarioSeguridadExiste(usuario, correo);
+		return usuarioService.convertirADTO(usuario);
 	}
 }

@@ -5,62 +5,76 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Motor de generación de horarios basado en coloreo de grafos.
  *
  * <p>
- * Cada sesión es un nodo de un {@link GrafoConflictos}; dos sesiones quedan
- * unidas si comparten docente o grupo. Con la heurística DSatur se elige en
- * cada paso la sesión más restringida y se le asigna la mejor franja viable. Un
- * {@link ComponenteDSU} agrupa las sesiones de un mismo curso para impedir que
- * repita día (RD6), y las aulas se asignan en un segundo paso según tipo,
- * capacidad y disponibilidad (RD3, RD9).
+ * Cada sesión es un nodo de un {@link GrafoConflictos}. Con la heurística
+ * DSatur se elige en cada paso la sesión más restringida (la que tiene más
+ * franjas bloqueadas) y se le asigna la franja viable del día con menos carga.
+ * Un {@link ComponenteDSU} une las sesiones de un mismo grupo para que caigan
+ * en días distintos. Las reglas se evalúan con {@link ReglasHorario}, la misma
+ * clase que usa el editor manual.
  * </p>
  *
  * <p>
- * Esta clase no depende de Spring ni de JPA, por lo que puede probarse de forma
- * aislada.
+ * Orden de evaluación (ver {@link MotivoRechazo}): disponibilidad del docente,
+ * tope de horas, sede, choques con vecinos del grafo, un día por grupo y aula.
+ * Es voraz: no hace backtracking. No depende de Spring ni de JPA.
  * </p>
+ *
+ * @version 2.1
  */
 public class MotorHorario {
 
-	/** Motivos por los que una franja se descarta para una sesión. */
-	public enum Motivo {
-		DOCENTE_NO_DISPONIBLE, CARGA_DOCENTE, CHOQUE_DOCENTE, CHOQUE_GRUPO, MISMO_DIA_CURSO, SIN_AULA
-	}
-
 	/**
-	 * Resultado de una generación: las sesiones que se lograron ubicar y las que
-	 * quedaron sin ubicar (estas últimas con su causa y desglose).
+	 * Resultado de una generación.
 	 */
 	public static class Resultado {
 
 		private final List<Sesion> ubicadas;
 		private final List<Sesion> sinUbicar;
+		private final List<String> avisos;
 
 		/**
-		 * Crea el resultado de una generación.
+		 * Crea el resultado.
 		 *
-		 * @param ubicadas  sesiones con franja y aula asignadas
-		 * @param sinUbicar sesiones que no se pudieron ubicar
+		 * @param ubicadas  sesiones con franja y aula.
+		 * @param sinUbicar sesiones que no se pudieron ubicar.
+		 * @param avisos    advertencias que no impiden el horario.
 		 */
-		public Resultado(List<Sesion> ubicadas, List<Sesion> sinUbicar) {
+		public Resultado(List<Sesion> ubicadas, List<Sesion> sinUbicar, List<String> avisos) {
 			this.ubicadas = ubicadas;
 			this.sinUbicar = sinUbicar;
+			this.avisos = avisos;
 		}
 
-		/** @return sesiones ubicadas */
+		/**
+		 * @return sesiones ubicadas.
+		 */
 		public List<Sesion> getUbicadas() {
 			return ubicadas;
 		}
 
-		/** @return sesiones que no se pudieron ubicar */
+		/**
+		 * @return sesiones sin ubicar.
+		 */
 		public List<Sesion> getSinUbicar() {
 			return sinUbicar;
+		}
+
+		/**
+		 * @return advertencias de la generación.
+		 */
+		public List<String> getAvisos() {
+			return avisos;
 		}
 	}
 
@@ -73,50 +87,75 @@ public class MotorHorario {
 		}
 	}
 
+	private static final int PENALIZACION_SABADO = 1;
+
 	private final List<Sesion> sesiones;
-	private final Map<Integer, DocenteMotor> docentes;
+	private final Map<Long, DocenteMotor> docentes = new HashMap<>();
+	private final List<SedeMotor> sedes;
+	private final Map<Long, SedeMotor> sedesPorId = new HashMap<>();
 	private final List<AulaMotor> aulas;
-	private final GeneradorFranjas.Parametros params;
+	private final SedeMotor sedePrimerSemestre;
 	private final GrafoConflictos grafo;
 	private final ComponenteDSU dsu;
+	private final Map<Integer, List<Integer>> miembrosPorRaiz = new HashMap<>();
 
 	private final Map<Integer, List<Franja>> franjasPorDuracion = new HashMap<>();
-	private final Map<Integer, Integer> horasDocente = new HashMap<>();
-	private final Map<Integer, List<Sesion>> ocupacionAula = new HashMap<>();
+	private final Map<Integer, List<DayOfWeek>> diasPorBloque = new HashMap<>();
+	private final Map<Long, Integer> horasDocente = new HashMap<>();
+	private final Map<Long, List<Sesion>> ocupacionAula = new HashMap<>();
 
 	/**
-	 * Crea el motor y construye el grafo de conflictos y los grupos de sesiones por
-	 * curso.
+	 * Crea el motor: construye el grafo de conflictos y une en el DSU las
+	 * sesiones de cada grupo.
 	 *
-	 * @param sesiones sesiones por ubicar
-	 * @param docentes docentes del motor, indexados por identificador
-	 * @param aulas    aulas disponibles
-	 * @param params   parámetros de la franja horaria general
+	 * @param sesiones sesiones por ubicar.
+	 * @param docentes docentes de esas sesiones.
+	 * @param sedes    sedes con sus horas habilitadas.
+	 * @param aulas    aulas disponibles.
 	 */
-	public MotorHorario(List<Sesion> sesiones, Map<Integer, DocenteMotor> docentes, List<AulaMotor> aulas,
-			GeneradorFranjas.Parametros params) {
+	public MotorHorario(List<Sesion> sesiones, List<DocenteMotor> docentes, List<SedeMotor> sedes,
+			List<AulaMotor> aulas) {
 		this.sesiones = sesiones;
-		this.docentes = docentes;
-		this.params = params;
+		for (DocenteMotor docente : docentes) {
+			this.docentes.put(docente.getId(), docente);
+		}
+		this.sedes = sedes;
+		for (SedeMotor sede : sedes) {
+			sedesPorId.put(sede.getId(), sede);
+		}
+		this.sedePrimerSemestre = ReglasHorario.buscarSedePrimerSemestre(sedes);
 		this.aulas = new ArrayList<>(aulas);
 		Collections.sort(this.aulas, new ComparadorPorCapacidad());
 
 		this.grafo = new GrafoConflictos(sesiones);
 		this.dsu = new ComponenteDSU(sesiones.size());
-		Map<Integer, Integer> primeraDeCurso = new HashMap<>();
+		Map<Long, Integer> primeraDelGrupo = new HashMap<>();
 		for (int i = 0; i < sesiones.size(); i++) {
-			Integer p = primeraDeCurso.putIfAbsent(sesiones.get(i).getClaveCurso(), i);
-			if (p != null) {
-				dsu.unir(p, i);
+			Long grupoId = sesiones.get(i).getGrupoId();
+			Integer primera = primeraDelGrupo.get(grupoId);
+			if (primera == null) {
+				primeraDelGrupo.put(grupoId, i);
+			} else {
+				dsu.unir(primera, i);
 			}
+		}
+		for (int i = 0; i < sesiones.size(); i++) {
+			int raiz = dsu.encontrar(i);
+			List<Integer> miembros = miembrosPorRaiz.get(raiz);
+			if (miembros == null) {
+				miembros = new ArrayList<>();
+				miembrosPorRaiz.put(raiz, miembros);
+			}
+			miembros.add(i);
 		}
 	}
 
 	/**
-	 * Ejecuta la heurística DSatur: en cada paso toma la sesión más restringida y
-	 * trata de ubicarla.
+	 * Ejecuta DSatur: en cada paso toma la sesión no procesada con mayor
+	 * saturación (en empate, mayor grado; luego menor índice) y trata de
+	 * ubicarla.
 	 *
-	 * @return sesiones ubicadas y sin ubicar
+	 * @return sesiones ubicadas, sin ubicar y avisos.
 	 */
 	public Resultado generar() {
 		int n = sesiones.size();
@@ -125,17 +164,19 @@ public class MotorHorario {
 		List<Sesion> sinUbicar = new ArrayList<>();
 
 		for (int paso = 0; paso < n; paso++) {
-			// DSatur: mayor saturación, luego mayor grado, luego menor índice
 			int elegido = -1;
-			int mejorSat = -1;
+			int mejorSaturacion = -1;
+			int mejorGrado = -1;
 			for (int i = 0; i < n; i++) {
 				if (procesada[i]) {
 					continue;
 				}
-				int sat = saturacion(i);
-				if (sat > mejorSat || (sat == mejorSat && grafo.grado(i) > grafo.grado(elegido))) {
+				int saturacion = saturacion(i);
+				int grado = grafo.grado(i);
+				if (saturacion > mejorSaturacion || (saturacion == mejorSaturacion && grado > mejorGrado)) {
 					elegido = i;
-					mejorSat = sat;
+					mejorSaturacion = saturacion;
+					mejorGrado = grado;
 				}
 			}
 			procesada[elegido] = true;
@@ -145,183 +186,229 @@ public class MotorHorario {
 				sinUbicar.add(sesiones.get(elegido));
 			}
 		}
-		return new Resultado(ubicadas, sinUbicar);
+		return new Resultado(ubicadas, sinUbicar, generarAvisos());
 	}
 
 	/**
-	 * Devuelve las franjas candidatas para la duración de una sesión, generándolas
-	 * una sola vez por duración.
+	 * Atajo a {@link ReglasHorario#calcularDiasPrimerSemestre(int, int)}.
+	 *
+	 * @param numeroGrupo número de grupo (bloque).
+	 * @param cantidad    días por semana en la sede.
+	 * @return días asignados, ordenados.
 	 */
-	private List<Franja> candidatas(Sesion s) {
-		int duracion = s.getDuracionHoras();
+	public static List<DayOfWeek> calcularDiasPrimerSemestre(int numeroGrupo, int cantidad) {
+		return ReglasHorario.calcularDiasPrimerSemestre(numeroGrupo, cantidad);
+	}
+
+	// ------------------------------------------------------------------
+	// DSatur
+	// ------------------------------------------------------------------
+
+	private List<Franja> candidatas(Sesion sesion) {
+		int duracion = sesion.getDuracionHoras();
 		List<Franja> franjas = franjasPorDuracion.get(duracion);
 		if (franjas == null) {
-			franjas = GeneradorFranjas.generar(duracion, params);
+			franjas = GeneradorFranjas.generar(duracion, sedes);
 			franjasPorDuracion.put(duracion, franjas);
 		}
 		return franjas;
 	}
 
-	/**
-	 * Saturación de una sesión: cantidad de franjas candidatas que ya no son
-	 * viables.
-	 */
 	private int saturacion(int i) {
-		int c = 0;
-		for (Franja f : candidatas(sesiones.get(i))) {
-			if (motivoRechazo(i, f) != null) {
-				c++;
+		int bloqueadas = 0;
+		for (Franja franja : candidatas(sesiones.get(i))) {
+			if (motivoRechazo(i, franja) != null) {
+				bloqueadas++;
 			}
 		}
-		return c;
+		return bloqueadas;
 	}
 
-	/**
-	 * Intenta ubicar una sesión. Entre las franjas viables elige la del día con
-	 * menos carga (la más temprana en caso de empate) y le asigna aula. Si ninguna
-	 * sirve, guarda la causa principal y el desglose de franjas descartadas por
-	 * motivo.
-	 *
-	 * @param i índice de la sesión
-	 * @return {@code true} si se ubicó, {@code false} si quedó sin ubicar
-	 */
 	private boolean intentarUbicar(int i) {
-		Sesion s = sesiones.get(i);
-		Map<Motivo, Integer> causas = new EnumMap<>(Motivo.class);
+		Sesion sesion = sesiones.get(i);
+		Map<MotivoRechazo, Integer> causas = new EnumMap<>(MotivoRechazo.class);
 		Franja mejor = null;
 		int mejorCarga = Integer.MAX_VALUE;
 
-		for (Franja f : candidatas(s)) {
-			Motivo m = motivoRechazo(i, f);
-			if (m != null) {
-				Integer actual = causas.get(m);
-				causas.put(m, actual == null ? 1 : actual + 1);
-				continue;
-			}
-			int carga = cargaDelDia(s, f.getDia());
-			if (carga < mejorCarga) { // "<" estricto: en empate gana la franja más temprana
-				mejor = f;
-				mejorCarga = carga;
+		for (Franja franja : candidatas(sesion)) {
+			MotivoRechazo motivo = motivoRechazo(i, franja);
+			if (motivo != null) {
+				Integer actual = causas.get(motivo);
+				if (actual == null) {
+					causas.put(motivo, 1);
+				} else {
+					causas.put(motivo, actual + 1);
+				}
+			} else {
+				int carga = cargaDelDia(sesion, franja.getDia());
+				if (carga < mejorCarga) {
+					mejor = franja;
+					mejorCarga = carga;
+				}
 			}
 		}
 
-		if (mejor != null) {
-			AulaMotor aula = buscarAula(s, mejor);
-			s.setFranja(mejor);
-			s.setAula(aula);
-
-			List<Sesion> ocupadas = ocupacionAula.get(aula.getId());
-			if (ocupadas == null) {
-				ocupadas = new ArrayList<>();
-				ocupacionAula.put(aula.getId(), ocupadas);
-			}
-			ocupadas.add(s);
-
-			int horasActuales = horasDocente.getOrDefault(s.getDocenteId(), 0);
-			horasDocente.put(s.getDocenteId(), horasActuales + s.getDuracionHoras());
-			return true;
+		if (mejor == null) {
+			sesion.setDesgloseCausas(causas);
+			sesion.setCausaSinUbicar(causaPrincipal(causas));
+			return false;
 		}
 
-		s.setDesgloseCausas(causas);
-		s.setCausaSinUbicar(causaPrincipal(causas));
-		return false;
+		AulaMotor aula = buscarAula(sesion, mejor);
+		sesion.setFranja(mejor);
+		sesion.setAula(aula);
+
+		List<Sesion> ocupadas = ocupacionAula.get(aula.getId());
+		if (ocupadas == null) {
+			ocupadas = new ArrayList<>();
+			ocupacionAula.put(aula.getId(), ocupadas);
+		}
+		ocupadas.add(sesion);
+		horasDocente.put(sesion.getDocenteId(), horasAsignadas(sesion.getDocenteId()) + sesion.getDuracionHoras());
+		return true;
 	}
 
-	/**
-	 * Devuelve el motivo que descartó más franjas. En caso de empate gana el
-	 * primero según el orden del enumerado.
-	 *
-	 * @param causas cantidad de franjas descartadas por cada motivo
-	 * @return motivo principal, o {@code null} si no hay causas
-	 */
-	private Motivo causaPrincipal(Map<Motivo, Integer> causas) {
-		Motivo principal = null;
+	private MotivoRechazo causaPrincipal(Map<MotivoRechazo, Integer> causas) {
+		MotivoRechazo principal = null;
 		int maximo = -1;
-		for (Map.Entry<Motivo, Integer> e : causas.entrySet()) {
-			if (e.getValue() > maximo) {
-				principal = e.getKey();
-				maximo = e.getValue();
+		for (Map.Entry<MotivoRechazo, Integer> entrada : causas.entrySet()) {
+			if (entrada.getValue() > maximo) {
+				principal = entrada.getKey();
+				maximo = entrada.getValue();
 			}
 		}
 		return principal;
 	}
 
 	/**
-	 * Sesiones ya ubicadas ese día del mismo grupo o docente; el sábado pesa 1
-	 * extra.
+	 * Carga de un día para una sesión: sesiones ya ubicadas ese día con el mismo
+	 * docente o del mismo bloque. El sábado suma una penalización.
 	 */
-	private int cargaDelDia(Sesion s, DayOfWeek dia) {
-		int c = (dia == DayOfWeek.SATURDAY) ? 1 : 0;
-		for (Sesion o : sesiones) {
-			if (o == s || o.getFranja() == null || o.getFranja().getDia() != dia) {
+	private int cargaDelDia(Sesion sesion, DayOfWeek dia) {
+		int carga = 0;
+		if (dia == DayOfWeek.SATURDAY) {
+			carga = PENALIZACION_SABADO;
+		}
+		for (Sesion otra : sesiones) {
+			if (otra == sesion || otra.getFranja() == null || otra.getFranja().getDia() != dia) {
 				continue;
 			}
-			if (o.getGrupoId() == s.getGrupoId() || o.getDocenteId() == s.getDocenteId()) {
-				c++;
+			if (otra.getDocenteId() == sesion.getDocenteId() || GrafoConflictos.mismoBloque(otra, sesion)) {
+				carga++;
 			}
 		}
-		return c;
+		return carga;
 	}
 
-	/** null = la franja es viable; si no, el motivo por el que se rechaza. */
-	private Motivo motivoRechazo(int i, Franja f) {
-		Sesion s = sesiones.get(i);
-		int dur = s.getDuracionHoras();
-		DocenteMotor doc = docentes.get(s.getDocenteId());
-
-		if (!doc.estaDisponibleEn(f, dur)) {
-			return Motivo.DOCENTE_NO_DISPONIBLE; // RD4
-		}
-		if (horasDocente.getOrDefault(doc.getId(), 0) + dur > doc.getTopeHorasSemanales()) {
-			return Motivo.CARGA_DOCENTE; // RD5
-		}
-
-		for (int v : grafo.vecinosDe(i)) { // RD1, RD2
-			Sesion o = sesiones.get(v);
-			if (o.getFranja() != null && Franja.traslapan(f, dur, o.getFranja(), o.getDuracionHoras())) {
-				return o.getDocenteId() == s.getDocenteId() ? Motivo.CHOQUE_DOCENTE : Motivo.CHOQUE_GRUPO;
-			}
-		}
-
-		int raiz = dsu.encontrar(i); // RD6
-		for (int j = 0; j < sesiones.size(); j++) {
-			if (j == i || dsu.encontrar(j) != raiz) {
-				continue;
-			}
-			Franja otra = sesiones.get(j).getFranja();
-			if (otra != null && otra.getDia() == f.getDia()) {
-				return Motivo.MISMO_DIA_CURSO;
-			}
-		}
-
-		if (buscarAula(s, f) == null) {
-			return Motivo.SIN_AULA; // RD3, RD9
-		}
-		return null;
-	}
+	// ------------------------------------------------------------------
+	// Reglas (delegadas a ReglasHorario)
+	// ------------------------------------------------------------------
 
 	/**
-	 * Busca el aula más ajustada que tenga el tipo y la capacidad requeridos y esté
-	 * libre en la franja dada.
-	 *
-	 * @return aula disponible, o {@code null} si no hay ninguna
+	 * @return {@code null} si la franja es viable; si no, el primer motivo que
+	 *         falla.
 	 */
-	private AulaMotor buscarAula(Sesion s, Franja f) {
-		for (AulaMotor a : aulas) {
-			if (a.getTipo() != s.getTipoAula() || a.getCapacidad() < s.getCapacidadRequerida()) {
-				continue;
+	private MotivoRechazo motivoRechazo(int i, Franja franja) {
+		Sesion sesion = sesiones.get(i);
+		int duracion = sesion.getDuracionHoras();
+		DocenteMotor docente = docentes.get(sesion.getDocenteId());
+
+		if (docente == null || !docente.estaDisponibleEn(franja, duracion)) {
+			return MotivoRechazo.DOCENTE_NO_DISPONIBLE;
+		}
+		if (!ReglasHorario.cargaPermitida(horasAsignadas(docente.getId()), duracion,
+				docente.getTopeHorasSemanales())) {
+			return MotivoRechazo.CARGA_DOCENTE;
+		}
+		if (!ReglasHorario.sedePermitida(sesion, sedesPorId.get(franja.getSedeId()), franja.getDia(),
+				sedePrimerSemestre, diasDelBloque(sesion.getNumeroGrupo()))) {
+			return MotivoRechazo.SEDE_NO_PERMITIDA;
+		}
+		for (int v : grafo.vecinosDe(i)) {
+			MotivoRechazo choque = ReglasHorario.motivoChoque(sesion, franja, sesiones.get(v));
+			if (choque != null) {
+				return choque;
 			}
-			boolean libre = true;
-			for (Sesion o : ocupacionAula.getOrDefault(a.getId(), List.of())) {
-				if (Franja.traslapan(f, s.getDuracionHoras(), o.getFranja(), o.getDuracionHoras())) {
-					libre = false;
-					break;
-				}
+		}
+		for (int j : miembrosPorRaiz.get(dsu.encontrar(i))) {
+			if (ReglasHorario.mismoDiaDelGrupo(sesion, franja, sesiones.get(j))) {
+				return MotivoRechazo.MISMO_DIA_GRUPO;
 			}
-			if (libre) {
-				return a;
+		}
+		if (buscarAula(sesion, franja) == null) {
+			return MotivoRechazo.SIN_AULA;
+		}
+		return null;
+	}
+
+	private List<DayOfWeek> diasDelBloque(int numeroGrupo) {
+		if (sedePrimerSemestre == null) {
+			return Collections.emptyList();
+		}
+		List<DayOfWeek> dias = diasPorBloque.get(numeroGrupo);
+		if (dias == null) {
+			dias = ReglasHorario.calcularDiasPrimerSemestre(numeroGrupo, sedePrimerSemestre.getDiasPrimerSemestre());
+			diasPorBloque.put(numeroGrupo, dias);
+		}
+		return dias;
+	}
+
+	private AulaMotor buscarAula(Sesion sesion, Franja franja) {
+		for (AulaMotor aula : aulas) {
+			if (ReglasHorario.aulaCompatible(aula, sesion, franja)
+					&& ReglasHorario.aulaLibre(sesion, franja, ocupacionAula.get(aula.getId()))) {
+				return aula;
 			}
 		}
 		return null;
+	}
+
+	private int horasAsignadas(long docenteId) {
+		Integer horas = horasDocente.get(docenteId);
+		if (horas == null) {
+			return 0;
+		}
+		return horas;
+	}
+
+	// ------------------------------------------------------------------
+	// Avisos
+	// ------------------------------------------------------------------
+
+	/**
+	 * Revisa, para cada bloque de primer semestre con materias núcleo, cuántos
+	 * días distintos quedó en la sede de primer semestre.
+	 */
+	private List<String> generarAvisos() {
+		List<String> avisos = new ArrayList<>();
+		if (sedePrimerSemestre == null) {
+			return avisos;
+		}
+		Map<Integer, Set<DayOfWeek>> diasUsados = new TreeMap<>();
+		for (Sesion sesion : sesiones) {
+			if (sesion.getSemestre() != 1 || !sesion.isNucleoComun()) {
+				continue;
+			}
+			Set<DayOfWeek> usados = diasUsados.get(sesion.getNumeroGrupo());
+			if (usados == null) {
+				usados = EnumSet.noneOf(DayOfWeek.class);
+				diasUsados.put(sesion.getNumeroGrupo(), usados);
+			}
+			Franja franja = sesion.getFranja();
+			if (franja != null && franja.getSedeId() == sedePrimerSemestre.getId()) {
+				usados.add(franja.getDia());
+			}
+		}
+
+		int requeridos = sedePrimerSemestre.getDiasPrimerSemestre();
+		for (Map.Entry<Integer, Set<DayOfWeek>> entrada : diasUsados.entrySet()) {
+			int usados = entrada.getValue().size();
+			if (usados < requeridos) {
+				avisos.add("El bloque G" + entrada.getKey() + " de primer semestre quedó con " + usados + " de "
+						+ requeridos + " días en " + sedePrimerSemestre.getNombre() + " (días asignados: "
+						+ diasDelBloque(entrada.getKey()) + ").");
+			}
+		}
+		return avisos;
 	}
 }

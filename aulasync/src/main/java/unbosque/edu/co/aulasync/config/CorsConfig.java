@@ -1,38 +1,56 @@
 package unbosque.edu.co.aulasync.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import unbosque.edu.co.aulasync.seguridad.AutenticacionInterceptor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Configuración web: CORS para el front en Angular y registro del interceptor
- * de autenticación. El login y la demostración del motor son públicos.
+ * Configuración de CORS para que el front en Angular pueda consumir la API.
+ *
+ * <p>
+ * Los orígenes permitidos salen de {@code aulasync.cors.origenes} (separados
+ * por coma). Spring Security toma este bean automáticamente.
+ * </p>
+ *
+ * @version 1.0
  */
 @Configuration
-public class CorsConfig implements WebMvcConfigurer {
+public class CorsConfig {
 
-	private final AutenticacionInterceptor autenticacion;
-	private final String[] origenes;
+	private static final long MAX_AGE_SEGUNDOS = 3600L;
 
-	public CorsConfig(AutenticacionInterceptor autenticacion,
+	/**
+	 * Fuente de configuración CORS aplicada a todas las rutas.
+	 *
+	 * @param origenes orígenes permitidos (por ejemplo
+	 *                 {@code http://localhost:4200}).
+	 * @return la configuración CORS registrada para {@code /**}.
+	 */
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource(
 			@Value("${aulasync.cors.origenes:http://localhost:4200}") String[] origenes) {
-		this.autenticacion = autenticacion;
-		this.origenes = origenes;
-	}
+		List<String> limpios = new ArrayList<>();
+		for (String origen : origenes) {
+			if (origen != null && !origen.isBlank()) {
+				limpios.add(origen.trim());
+			}
+		}
 
-	@Override
-	public void addCorsMappings(CorsRegistry registry) {
-		registry.addMapping("/api/**").allowedOrigins(origenes)
-				.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS").allowedHeaders("*");
-	}
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOrigins(limpios);
+		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+		config.setMaxAge(MAX_AGE_SEGUNDOS);
 
-	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
-		registry.addInterceptor(autenticacion).addPathPatterns("/api/**").excludePathPatterns("/api/auth/login",
-				"/api/motor/demo");
+		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+		fuente.registerCorsConfiguration("/**", config);
+		return fuente;
 	}
 }
