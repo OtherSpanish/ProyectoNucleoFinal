@@ -1,0 +1,30 @@
+<div class="editor">
+  @for (franja of franjas(); track $index) {
+    <div class="fila">
+      <select [(ngModel)]="franja.dia" aria-label="Día">
+        @for (dia of dias; track dia.valor) {
+          <option [ngValue]="dia.valor">{{ dia.etiqueta }}</option>
+        }
+      </select>
+      <select [(ngModel)]="franja.horaInicio" aria-label="Hora de inicio">
+        @for (hora of horas; track hora) {
+          <option [ngValue]="hora">{{ hora | hora }}</option>
+        }
+      </select>
+      <span class="a">a</span>
+      <select [(ngModel)]="franja.horaFin" aria-label="Hora de fin">
+        @for (hora of horas; track hora) {
+          <option [ngValue]="hora">{{ hora | hora }}</option>
+        }
+      </select>
+      <button type="button" class="boton-icono" (click)="quitar($index)" aria-label="Quitar franja">
+        <app-icono nombre="borrar" [tamano]="16" />
+      </button>
+    </div>
+  } @empty {
+    <p class="texto-suave">Sin franjas. Agrega la primera.</p>
+  }
+  <button type="button" class="boton boton-fantasma" (click)="agregar()">
+    <app-icono nombre="mas" [tamano]="16" /> Agregar franja
+  </button>
+</div>

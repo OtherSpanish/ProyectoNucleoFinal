@@ -1,0 +1,35 @@
+<app-encabezado-pagina titulo="Especialidades" descripcion="Áreas de conocimiento que habilitan a un docente para dictar un curso.">
+  <button type="button" class="boton boton-primario" (click)="nueva()">
+    <app-icono nombre="mas" [tamano]="16" /> Nueva especialidad
+  </button>
+</app-encabezado-pagina>
+
+@if (cargando()) {
+  <div class="cargando">Cargando especialidades…</div>
+} @else if (especialidades().length === 0) {
+  <app-estado-vacio mensaje="Aún no hay especialidades registradas." icono="etiqueta" />
+} @else {
+  <div class="cuadricula">
+    @for (especialidad of especialidades(); track especialidad.id) {
+      <article class="tarjeta">
+        <h3>{{ especialidad.nombre }}</h3>
+        <p class="texto-suave">{{ especialidad.descripcion || 'Sin descripción.' }}</p>
+        <div class="fila-acciones">
+          <button type="button" class="boton-icono" (click)="editar(especialidad)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+          <button type="button" class="boton-icono peligro" (click)="eliminar(especialidad)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nueva especialidad' : 'Editar especialidad'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo"><span>Descripción</span><textarea name="descripcion" rows="4" [(ngModel)]="formulario.descripcion"></textarea></label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>

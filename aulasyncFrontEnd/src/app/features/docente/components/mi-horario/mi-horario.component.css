@@ -1,0 +1,13 @@
+.resumen {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pendientes-titulo {
+  margin-top: 24px;
+}
+.pendientes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}

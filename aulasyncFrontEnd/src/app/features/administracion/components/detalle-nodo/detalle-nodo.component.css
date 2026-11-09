@@ -1,0 +1,80 @@
+:host {
+  display: block;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.codigo {
+  font-family: var(--fuente-mono);
+  font-size: 12px;
+  color: var(--naranja-700);
+}
+h3 {
+  margin: 2px 0 10px;
+}
+h4 {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+.factor {
+  --tono: var(--olivo-700);
+  border-left: 3px solid var(--tono);
+  padding: 2px 0 2px 10px;
+  margin-bottom: 12px;
+}
+.factor[data-tipo='docente'] { --tono: #3d5ea8; }
+.factor[data-tipo='grupo'] { --tono: #e8890c; }
+.factor[data-tipo='bloque'] { --tono: #8a4fa3; }
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--olivo-900);
+}
+.marca {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tono);
+}
+.factor p,
+.resumen {
+  margin: 4px 0 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--olivo-700);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chips button {
+  font-family: var(--fuente-mono);
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  cursor: pointer;
+  color: var(--olivo-900);
+}
+.chips button:hover {
+  border-color: var(--tono);
+}
+.chips button.actual {
+  background: var(--tono);
+  border-color: var(--tono);
+  color: #fff;
+}
+.resultado {
+  margin: 10px 0;
+  font-size: 13px;
+}

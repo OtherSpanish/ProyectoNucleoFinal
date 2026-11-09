@@ -1,0 +1,28 @@
+<aside
+  class="bandeja"
+  [class.encima]="encima()"
+  (dragover)="alArrastrarSobre($event)"
+  (dragleave)="encima.set(false)"
+  (drop)="alSoltar($event)"
+>
+  <header>
+    <app-icono nombre="bandeja" />
+    <h3>Sin ubicar</h3>
+    <span class="conteo">{{ sesiones().length }}</span>
+  </header>
+  <p class="ayuda">Suelta aquí una sesión del calendario para retirarla.</p>
+  <div class="lista">
+    @for (sesion of sesiones(); track sesion.id) {
+      <app-tarjeta-sesion
+        [sesion]="sesion"
+        [mostrarCausa]="true"
+        draggable="true"
+        [attr.data-sesion-id]="sesion.id"
+        (dragstart)="alIniciarArrastre($event, sesion)"
+        (dragend)="alTerminarArrastre()"
+      />
+    } @empty {
+      <p class="vacio">Todas las sesiones tienen lugar en el horario.</p>
+    }
+  </div>
+</aside>

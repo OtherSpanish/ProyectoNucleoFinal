@@ -1,0 +1,61 @@
+@let datos = movimiento();
+<div class="trayecto">
+  <div class="punto">
+    <span class="rotulo">Desde</span>
+    @if (datos.sesion.ubicada) {
+      <strong>{{ datos.sesion.diaNombre }} {{ datos.sesion.horaInicio | hora }}</strong>
+      <span class="texto-suave">{{ datos.sesion.aulaNombre }}</span>
+    } @else {
+      <strong>Sin ubicar</strong>
+    }
+  </div>
+  <span class="flecha">→</span>
+  <div class="punto destino">
+    <span class="rotulo">Hacia</span>
+    <strong>{{ datos.diaNombre }} {{ datos.horaInicio | hora }}</strong>
+    <span class="texto-suave">{{ datos.sesion.duracionHoras }} h de clase</span>
+  </div>
+</div>
+
+<app-tarjeta-sesion [sesion]="datos.sesion" />
+
+<label class="campo aula">
+  <span>Aula destino</span>
+  <select [(ngModel)]="aulaId" (ngModelChange)="validar()">
+    <option [ngValue]="null" disabled>Selecciona un aula</option>
+    @for (aula of aulas(); track aula.id) {
+      <option [ngValue]="aula.id">
+        {{ aula.nombre }} · {{ aula.sedeNombre }} · {{ aula.capacidad }} cupos · {{ aula.tipo | etiqueta: 'tipoAula' }}
+      </option>
+    }
+  </select>
+</label>
+
+@if (validando()) {
+  <div class="cargando">Validando con el servidor…</div>
+} @else if (validacion(); as resultado) {
+  @if (resultado.valido) {
+    <div class="aviso aviso-exito"><app-icono nombre="check" /> El movimiento no genera choques.</div>
+  } @else {
+    <div class="aviso aviso-peligro">
+      <app-icono nombre="alerta" />
+      <div>
+        <strong>No se puede mover aquí:</strong>
+        <ul>
+          @for (mensaje of resultado.mensajes; track $index) {
+            <li>{{ mensaje }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
+} @else if (aulaId === null) {
+  <div class="aviso">Elige el aula para validar el movimiento.</div>
+}
+
+<div class="fila-acciones">
+  <button type="button" class="boton boton-secundario" (click)="cancelado.emit()">Cancelar</button>
+  <button type="button" class="boton boton-primario" [disabled]="!validacion()?.valido || guardando()" (click)="confirmar()">
+    {{ guardando() ? 'Guardando…' : 'Confirmar movimiento' }}
+  </button>
+</div>

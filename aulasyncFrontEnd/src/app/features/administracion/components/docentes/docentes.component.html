@@ -1,0 +1,107 @@
+<app-encabezado-pagina titulo="Docentes" descripcion="Perfil docente de cada usuario: dedicación, especialidades y disponibilidad semanal.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo docente
+  </button>
+</app-encabezado-pagina>
+
+<form class="barra-filtros" (ngSubmit)="cargar()">
+  <label class="campo">
+    <span>Especialidad</span>
+    <select name="especialidad" [(ngModel)]="filtroEspecialidadId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todas</option>
+      @for (especialidad of especialidades(); track especialidad.id) {
+        <option [ngValue]="especialidad.id">{{ especialidad.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Buscar por nombre</span>
+    <input name="prefijo" [(ngModel)]="prefijo" placeholder="Ej. Ramírez" />
+  </label>
+  <button type="submit" class="boton boton-oscuro"><app-icono nombre="buscar" [tamano]="16" /> Buscar</button>
+</form>
+
+@if (cargando()) {
+  <div class="cargando">Cargando docentes…</div>
+} @else if (docentes().length === 0) {
+  <app-estado-vacio mensaje="No hay docentes con ese filtro." icono="docente" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Docente</th><th>Dedicación</th><th>Especialidades</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (docente of docentes(); track docente.id) {
+          <tr>
+            <td>
+              <strong>{{ docente.usuario.nombre }}</strong>
+              <div class="texto-suave mono">{{ docente.usuario.correo }}</div>
+            </td>
+            <td>{{ docente.dedicacion | etiqueta: 'dedicacion' }}</td>
+            <td>
+              <div class="lista-insignias">
+                @for (especialidad of docente.especialidades; track especialidad.id) {
+                  <span class="insignia">{{ especialidad.nombre }}</span>
+                }
+              </div>
+            </td>
+            <td class="acciones">
+              <button type="button" class="boton boton-fantasma" (click)="docenteDisponibilidad.set(docente)">
+                <app-icono nombre="reloj" [tamano]="16" /> Disponibilidad
+              </button>
+              <button type="button" class="boton-icono" (click)="editar(docente)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(docente)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo docente' : 'Editar docente'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo">
+      <span>Usuario (rol docente)</span>
+      <select name="usuario" [(ngModel)]="formulario.usuario.id">
+        <option [ngValue]="null" disabled>Selecciona un usuario</option>
+        @for (usuario of usuariosDocentes(); track usuario.id) {
+          <option [ngValue]="usuario.id">{{ usuario.nombre }} · {{ usuario.correo }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo">
+      <span>Dedicación</span>
+      <select name="dedicacion" [(ngModel)]="formulario.dedicacion">
+        <option [ngValue]="null" disabled>Selecciona la dedicación</option>
+        @for (dedicacion of dedicaciones; track dedicacion.valor) {
+          <option [ngValue]="dedicacion.valor">{{ dedicacion.etiqueta }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo">
+      <span>Especialidades (Ctrl/⌘ + clic para varias)</span>
+      <select multiple name="especialidades" [(ngModel)]="formulario.especialidades" [compareWith]="compararPorId">
+        @for (especialidad of especialidades(); track especialidad.id) {
+          <option [ngValue]="especialidad">{{ especialidad.nombre }}</option>
+        }
+      </select>
+    </label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [titulo]="'Disponibilidad · ' + (docenteDisponibilidad()?.usuario?.nombre ?? '')"
+  [abierto]="docenteDisponibilidad() !== null"
+  ancho="560px"
+  (cerrar)="docenteDisponibilidad.set(null)"
+>
+  @if (docenteDisponibilidad(); as docente) {
+    <app-disponibilidad-docente [docenteId]="docente.id!" (guardado)="docenteDisponibilidad.set(null)" />
+  }
+</app-panel-lateral>

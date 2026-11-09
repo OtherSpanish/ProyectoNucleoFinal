@@ -1,0 +1,255 @@
+.etapas {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.etapas button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--olivo-700);
+  min-width: 0;
+}
+.etapas .indice {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  background: var(--olivo-100);
+}
+.etapas .nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.etapas .vista .indice {
+  background: var(--olivo-700);
+  color: #fff;
+}
+.etapas .activa {
+  border-color: var(--naranja-500);
+  background: var(--naranja-100);
+  color: var(--olivo-900);
+  font-weight: 600;
+}
+.etapas .activa .indice {
+  background: var(--naranja-500);
+  color: #fff;
+}
+.estudio {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+.explicacion,
+.detalle {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+.numero-etapa {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--naranja-700);
+}
+h2 {
+  font-family: var(--fuente-titulo);
+  font-size: 24px;
+  margin: 4px 0 8px;
+}
+.explicacion p {
+  line-height: 1.55;
+  margin: 0 0 10px;
+}
+.parrafos summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--naranja-700);
+  margin-bottom: 8px;
+}
+.resumen {
+  font-weight: 600;
+  color: var(--olivo-900);
+}
+.cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+.cifras div {
+  flex: 1;
+  min-width: 82px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--olivo-50);
+}
+.cifras strong {
+  display: block;
+  font-family: var(--fuente-titulo);
+  font-size: 22px;
+  color: var(--olivo-900);
+}
+.cifras span {
+  font-size: 11.5px;
+  color: var(--texto-suave);
+}
+.cifras .exito strong { color: var(--exito); }
+.cifras .peligro strong { color: var(--peligro); }
+.reproductor {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--olivo-50);
+  margin-bottom: 14px;
+}
+.botones {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.reproducir {
+  min-width: 108px;
+}
+.reproductor input[type='range'] {
+  margin: 10px 0 6px;
+  padding: 0;
+  accent-color: var(--naranja-500);
+}
+.velocidad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  gap: 8px;
+}
+.velocidad select {
+  width: auto;
+  padding: 5px 8px;
+}
+.navegacion {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+.lista-detalle summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.lista-detalle ul {
+  font-size: 12.5px;
+  padding-left: 18px;
+}
+.zona-grafo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.barra-grafo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 13px;
+}
+.barra-grafo label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.barra-grafo select {
+  width: auto;
+  padding: 6px 10px;
+}
+.ayuda {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+.grafo {
+  height: calc(100vh - 330px);
+  min-height: 460px;
+}
+.pista {
+  text-align: center;
+  color: var(--texto-suave);
+  padding: 24px 8px;
+}
+.pista app-icono {
+  color: var(--naranja-500);
+}
+.pista p {
+  line-height: 1.55;
+}
+.portada {
+  max-width: 760px;
+  text-align: center;
+  padding: 32px;
+  margin: 24px auto;
+}
+.pasos-portada {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+  font-weight: 600;
+  color: var(--olivo-900);
+}
+.pasos-portada span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: var(--naranja-500);
+  color: #fff;
+}
+.portada p {
+  line-height: 1.6;
+  color: var(--texto-suave);
+}
+@media (max-width: 1500px) {
+  .estudio {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+  .detalle {
+    grid-column: 1 / -1;
+    max-height: none;
+  }
+  .etapas .nombre {
+    display: none;
+  }
+  .etapas button {
+    justify-content: center;
+  }
+}
+@media (max-width: 960px) {
+  .estudio {
+    grid-template-columns: 1fr;
+  }
+  .explicacion {
+    max-height: none;
+  }
+  .pasos-portada {
+    grid-template-columns: 1fr 1fr;
+  }
+}

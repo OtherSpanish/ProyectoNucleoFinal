@@ -1,0 +1,90 @@
+<app-encabezado-pagina
+  titulo="Horario"
+  descripcion="Arrastra una sesión a otra franja para moverla, o suéltala en la bandeja para sacarla del horario. El servidor valida choques, aulas y disponibilidad antes de guardar."
+>
+  <button type="button" class="boton boton-secundario" [disabled]="procesando()" (click)="sincronizar()">
+    <app-icono nombre="sincronizar" [tamano]="16" /> Sincronizar
+  </button>
+  <button type="button" class="boton boton-primario" [disabled]="procesando()" (click)="generar()">
+    <app-icono nombre="rayo" [tamano]="16" /> {{ procesando() ? 'Procesando…' : 'Generar horario' }}
+  </button>
+</app-encabezado-pagina>
+
+<div class="barra-filtros">
+  <div class="campo semestres">
+    <span>Semestre</span>
+    <div class="segmentos" role="radiogroup" aria-label="Semestre">
+      <button type="button" [class.activo]="semestre === null && !prefijo" (click)="semestre = null; cambiarSemestre()">Todos</button>
+      @for (item of semestres(); track item.id) {
+        <button type="button" [class.activo]="semestre === item.numero" (click)="semestre = item.numero; cambiarSemestre()">
+          {{ item.numero }}
+        </button>
+      }
+    </div>
+  </div>
+  <form class="campo prefijo" (ngSubmit)="buscarPrefijo()">
+    <span>Clave semestre/curso/grupo</span>
+    <div class="en-linea">
+      <input name="prefijo" [(ngModel)]="prefijo" placeholder="Ej. 1/MAT101 o 2/SIS200/G1" />
+      <button type="submit" class="boton boton-oscuro" aria-label="Buscar"><app-icono nombre="buscar" [tamano]="16" /></button>
+    </div>
+  </form>
+</div>
+
+@if (calendario(); as cal) {
+  <div class="resumen">
+    <span class="descripcion">{{ cal.descripcion }}</span>
+    <span class="insignia insignia-exito">{{ cal.totalUbicadas }} ubicadas</span>
+    <span class="insignia" [class.insignia-alerta]="cal.totalSinUbicar > 0">{{ cal.totalSinUbicar }} sin ubicar</span>
+    @if (cargando()) {
+      <span class="texto-suave">Actualizando…</span>
+    }
+  </div>
+  <div class="tablero">
+    <app-calendario-semanal [calendario]="cal" [editable]="true" (soltar)="alSoltarEnCalendario($event)" />
+    <app-bandeja-sin-ubicar [sesiones]="cal.sinUbicar" (retirar)="alRetirarSesion($event)" />
+  </div>
+} @else if (cargando()) {
+  <div class="cargando">Cargando horario…</div>
+} @else {
+  <app-estado-vacio mensaje="No se pudo cargar el horario. Revisa la conexión con el servidor." icono="calendario" />
+}
+
+<app-panel-lateral titulo="Mover sesión" [abierto]="movimiento() !== null" ancho="460px" (cerrar)="movimiento.set(null)">
+  @if (movimiento(); as pendiente) {
+    <app-movimiento-sesion
+      [movimiento]="pendiente"
+      [aulas]="aulas()"
+      (cancelado)="movimiento.set(null)"
+      (confirmado)="alConfirmarMovimiento()"
+    />
+  }
+</app-panel-lateral>
+
+<app-panel-lateral titulo="Resultado de la generación" [abierto]="resultadoGeneracion() !== null" ancho="720px" (cerrar)="resultadoGeneracion.set(null)">
+  @if (resultadoGeneracion(); as resultado) {
+    <app-resumen-generacion [resultado]="resultado" />
+  }
+</app-panel-lateral>
+
+<app-panel-lateral titulo="Sincronización" [abierto]="resultadoSincronizacion() !== null" (cerrar)="resultadoSincronizacion.set(null)">
+  @if (resultadoSincronizacion(); as resultado) {
+    @if (!resultado.hayHorario) {
+      <div class="aviso">Todavía no hay un horario guardado. Genera uno primero.</div>
+    } @else {
+      <div class="estadisticas">
+        <div class="estadistica"><strong>{{ resultado.sesionesCreadas }}</strong><span>Sesiones creadas</span></div>
+        <div class="estadistica"><strong>{{ resultado.sesionesEliminadas }}</strong><span>Eliminadas</span></div>
+        <div class="estadistica destacada"><strong>{{ resultado.sesionesDesubicadas }}</strong><span>Desubicadas</span></div>
+      </div>
+      <h3>Cambios</h3>
+      <ul class="cambios">
+        @for (cambio of resultado.cambios; track $index) {
+          <li>{{ cambio }}</li>
+        } @empty {
+          <li class="texto-suave">El horario ya estaba al día con los datos maestros.</li>
+        }
+      </ul>
+    }
+  }
+</app-panel-lateral>

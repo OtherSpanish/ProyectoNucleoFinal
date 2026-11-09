@@ -1,0 +1,50 @@
+<app-encabezado-pagina titulo="Mis cursos" descripcion="Los grupos que tienes asignados este periodo." />
+
+@if (cargando()) {
+  <div class="cargando">Cargando tus cursos…</div>
+} @else if (grupos().length === 0) {
+  <app-estado-vacio mensaje="No tienes grupos asignados." icono="libro" />
+} @else {
+  <div class="cuadricula">
+    @for (grupo of grupos(); track grupo.id) {
+      <article class="tarjeta curso" [attr.data-semestre]="grupo.semestreNumero">
+        <span class="mono codigo">{{ grupo.cursoCodigo }} · G{{ grupo.numero }}</span>
+        <h3>{{ grupo.cursoNombre }}</h3>
+        <div class="lista-insignias">
+          <span class="insignia">Semestre {{ grupo.semestreNumero }}</span>
+          <span class="insignia">{{ grupo.cantidadEstudiantes }} estudiantes</span>
+          @if (grupo.abierto) {
+            <span class="insignia insignia-exito">Abierto</span>
+          } @else {
+            <span class="insignia insignia-alerta">Sin abrir</span>
+          }
+        </div>
+        <button type="button" class="boton boton-secundario" (click)="verEstudiantes(grupo)">
+          <app-icono nombre="estudiante" [tamano]="16" /> Ver estudiantes
+        </button>
+      </article>
+    }
+  </div>
+}
+
+<app-panel-lateral
+  [titulo]="(grupoSeleccionado()?.cursoCodigo ?? '') + ' · G' + (grupoSeleccionado()?.numero ?? '')"
+  [abierto]="grupoSeleccionado() !== null"
+  (cerrar)="grupoSeleccionado.set(null)"
+>
+  @if (inscritos(); as datos) {
+    <p class="texto-suave">{{ datos.estudiantes.length }} de {{ datos.maximoInscritos }} cupos ocupados.</p>
+    <table class="tabla">
+      <thead><tr><th>Código</th><th>Nombre</th><th>Correo</th></tr></thead>
+      <tbody>
+        @for (estudiante of datos.estudiantes; track estudiante.id) {
+          <tr><td class="mono">{{ estudiante.codigo }}</td><td>{{ estudiante.nombre }}</td><td class="texto-suave">{{ estudiante.correo }}</td></tr>
+        } @empty {
+          <tr><td colspan="3" class="texto-suave">Sin estudiantes inscritos.</td></tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <div class="cargando">Cargando estudiantes…</div>
+  }
+</app-panel-lateral>

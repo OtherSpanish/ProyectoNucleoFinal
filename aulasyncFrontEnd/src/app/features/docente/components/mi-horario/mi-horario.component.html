@@ -1,0 +1,23 @@
+<app-encabezado-pagina titulo="Mi horario" descripcion="Tus clases de la semana con aula y sede." />
+
+@if (cargando()) {
+  <div class="cargando">Cargando tu horario…</div>
+} @else if (calendario(); as cal) {
+  <div class="resumen">
+    <span class="insignia insignia-exito">{{ cal.totalUbicadas }} sesiones programadas</span>
+    @if (cal.totalSinUbicar > 0) {
+      <span class="insignia insignia-alerta">{{ cal.totalSinUbicar }} pendientes de ubicar</span>
+    }
+  </div>
+  <app-calendario-semanal [calendario]="cal" />
+  @if (cal.sinUbicar.length > 0) {
+    <h3 class="pendientes-titulo">Pendientes de ubicar</h3>
+    <div class="pendientes">
+      @for (sesion of cal.sinUbicar; track sesion.id) {
+        <app-tarjeta-sesion [sesion]="sesion" [mostrarCausa]="true" />
+      }
+    </div>
+  }
+} @else {
+  <app-estado-vacio mensaje="Aún no tienes horario asignado." icono="calendario" />
+}

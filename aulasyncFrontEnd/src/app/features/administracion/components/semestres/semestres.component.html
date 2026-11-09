@@ -1,0 +1,33 @@
+<app-encabezado-pagina titulo="Semestres" descripcion="Los 9 semestres de la carrera. El horario evita choques entre semestres consecutivos.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo semestre
+  </button>
+</app-encabezado-pagina>
+
+@if (cargando()) {
+  <div class="cargando">Cargando semestres…</div>
+} @else if (semestres().length === 0) {
+  <app-estado-vacio mensaje="No hay semestres registrados." icono="capas" />
+} @else {
+  <div class="lista">
+    @for (semestre of semestres(); track semestre.id) {
+      <article class="semestre" [attr.data-semestre]="semestre.numero">
+        <span class="numero">{{ semestre.numero }}</span>
+        <div class="nombre">{{ semestre.nombre }}</div>
+        <button type="button" class="boton-icono" (click)="editar(semestre)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+        <button type="button" class="boton-icono peligro" (click)="eliminar(semestre)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+      </article>
+    }
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo semestre' : 'Editar semestre'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Número (1 a 9)</span><input type="number" name="numero" [(ngModel)]="formulario.numero" /></label>
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" placeholder="Primer semestre" /></label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>

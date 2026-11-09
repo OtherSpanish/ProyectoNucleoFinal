@@ -12,6 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import unbosque.edu.co.aulasync.model.CausaDescartada;
+import unbosque.edu.co.aulasync.model.PasoTraza;
+
 /**
  * Motor de generación de horarios basado en coloreo de grafos.
  *
@@ -30,7 +33,14 @@ import java.util.TreeMap;
  * Es voraz: no hace backtracking. No depende de Spring ni de JPA.
  * </p>
  *
- * @version 2.1
+ * <p>
+ * Cada decisión de DSatur queda registrada como un {@link PasoTraza} (sesión
+ * elegida, saturación, grado, franjas descartadas por regla y resultado), para
+ * poder explicar visualmente la ejecución. Registrar la traza no cambia el
+ * resultado.
+ * </p>
+ *
+ * @version 2.2
  */
 public class MotorHorario {
 
@@ -103,6 +113,7 @@ public class MotorHorario {
 	private final Map<Integer, List<DayOfWeek>> diasPorBloque = new HashMap<>();
 	private final Map<Long, Integer> horasDocente = new HashMap<>();
 	private final Map<Long, List<Sesion>> ocupacionAula = new HashMap<>();
+	private final List<PasoTraza> pasos = new ArrayList<>();
 
 	/**
 	 * Crea el motor: construye el grafo de conflictos y une en el DSU las
@@ -162,6 +173,7 @@ public class MotorHorario {
 		boolean[] procesada = new boolean[n];
 		List<Sesion> ubicadas = new ArrayList<>();
 		List<Sesion> sinUbicar = new ArrayList<>();
+		pasos.clear();
 
 		for (int paso = 0; paso < n; paso++) {
 			int elegido = -1;
@@ -180,13 +192,52 @@ public class MotorHorario {
 				}
 			}
 			procesada[elegido] = true;
-			if (intentarUbicar(elegido)) {
+			if (intentarUbicar(elegido, paso + 1, mejorSaturacion, mejorGrado)) {
 				ubicadas.add(sesiones.get(elegido));
 			} else {
 				sinUbicar.add(sesiones.get(elegido));
 			}
 		}
 		return new Resultado(ubicadas, sinUbicar, generarAvisos());
+	}
+
+	/**
+	 * @return pasos de DSatur de la última ejecución de {@link #generar()}, en
+	 *         orden.
+	 */
+	public List<PasoTraza> getPasos() {
+		return pasos;
+	}
+
+	/**
+	 * @return grafo de conflictos construido con las sesiones.
+	 */
+	public GrafoConflictos getGrafo() {
+		return grafo;
+	}
+
+	/**
+	 * @param i índice de una sesión.
+	 * @return índice de la raíz de su componente en el DSU.
+	 */
+	public int raizDsu(int i) {
+		return dsu.encontrar(i);
+	}
+
+	/**
+	 * @param i índice de una sesión.
+	 * @return índices de las sesiones de su misma componente (su grupo),
+	 *         incluida ella.
+	 */
+	public List<Integer> miembrosComponente(int i) {
+		return new ArrayList<>(miembrosPorRaiz.get(dsu.encontrar(i)));
+	}
+
+	/**
+	 * @return cantidad de componentes del DSU (una por grupo).
+	 */
+	public int totalComponentes() {
+		return miembrosPorRaiz.size();
 	}
 
 	/**
@@ -224,13 +275,26 @@ public class MotorHorario {
 		return bloqueadas;
 	}
 
-	private boolean intentarUbicar(int i) {
+	/**
+	 * Busca la franja viable del día con menos carga y le asigna aula. Deja
+	 * registrado el paso en la traza.
+	 *
+	 * @param i          índice de la sesión elegida.
+	 * @param numeroPaso número del paso de DSatur (empieza en 1).
+	 * @param saturacion saturación con la que fue elegida.
+	 * @param grado      grado del nodo en el grafo.
+	 * @return {@code true} si se ubicó.
+	 */
+	private boolean intentarUbicar(int i, int numeroPaso, int saturacion, int grado) {
 		Sesion sesion = sesiones.get(i);
 		Map<MotivoRechazo, Integer> causas = new EnumMap<>(MotivoRechazo.class);
 		Franja mejor = null;
 		int mejorCarga = Integer.MAX_VALUE;
+		int candidatas = 0;
+		int viables = 0;
 
 		for (Franja franja : candidatas(sesion)) {
+			candidatas++;
 			MotivoRechazo motivo = motivoRechazo(i, franja);
 			if (motivo != null) {
 				Integer actual = causas.get(motivo);
@@ -240,6 +304,7 @@ public class MotorHorario {
 					causas.put(motivo, actual + 1);
 				}
 			} else {
+				viables++;
 				int carga = cargaDelDia(sesion, franja.getDia());
 				if (carga < mejorCarga) {
 					mejor = franja;
@@ -248,15 +313,22 @@ public class MotorHorario {
 			}
 		}
 
+		PasoTraza traza = new PasoTraza(numeroPaso, i, saturacion, grado, candidatas, viables,
+				listarBloqueos(causas), mejor != null);
+		pasos.add(traza);
+
 		if (mejor == null) {
 			sesion.setDesgloseCausas(causas);
 			sesion.setCausaSinUbicar(causaPrincipal(causas));
+			traza.registrarCausa(sesion.getCausaSinUbicar());
 			return false;
 		}
 
 		AulaMotor aula = buscarAula(sesion, mejor);
 		sesion.setFranja(mejor);
 		sesion.setAula(aula);
+		traza.registrarUbicacion(mejor.getDia(), mejor.getHoraInicio(), aula.getNombre(),
+				sedesPorId.get(mejor.getSedeId()).getNombre(), mejorCarga);
 
 		List<Sesion> ocupadas = ocupacionAula.get(aula.getId());
 		if (ocupadas == null) {
@@ -266,6 +338,19 @@ public class MotorHorario {
 		ocupadas.add(sesion);
 		horasDocente.put(sesion.getDocenteId(), horasAsignadas(sesion.getDocenteId()) + sesion.getDuracionHoras());
 		return true;
+	}
+
+	/**
+	 * Convierte el conteo de franjas descartadas en una lista, en el orden en que
+	 * el motor evalúa las reglas (el orden del enum {@link MotivoRechazo}).
+	 */
+	private List<CausaDescartada> listarBloqueos(Map<MotivoRechazo, Integer> causas) {
+		List<CausaDescartada> bloqueos = new ArrayList<>();
+		for (Map.Entry<MotivoRechazo, Integer> entrada : causas.entrySet()) {
+			bloqueos.add(new CausaDescartada(entrada.getKey(), entrada.getKey().getDescripcion(),
+					entrada.getValue()));
+		}
+		return bloqueos;
 	}
 
 	private MotivoRechazo causaPrincipal(Map<MotivoRechazo, Integer> causas) {

@@ -1,0 +1,21 @@
+@if (confirmacionService.confirmacion(); as confirmacion) {
+  <div class="fondo" (click)="confirmacionService.responder(false)"></div>
+  <div class="dialogo" role="alertdialog" [attr.aria-label]="confirmacion.titulo">
+    <h2>{{ confirmacion.titulo }}</h2>
+    <p>{{ confirmacion.mensaje }}</p>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="confirmacionService.responder(false)">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="boton"
+        [class.boton-peligro]="confirmacion.peligrosa"
+        [class.boton-primario]="!confirmacion.peligrosa"
+        (click)="confirmacionService.responder(true)"
+      >
+        {{ confirmacion.textoConfirmar }}
+      </button>
+    </div>
+  </div>
+}

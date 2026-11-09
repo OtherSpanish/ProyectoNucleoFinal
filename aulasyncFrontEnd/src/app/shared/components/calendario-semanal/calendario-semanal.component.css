@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.marco {
+  overflow: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  max-height: calc(100vh - 230px);
+}
+.calendario {
+  --alto-hora: 50px;
+  display: grid;
+  grid-template-columns: 62px repeat(var(--dias), minmax(170px, 1fr));
+  min-width: calc(62px + var(--dias) * 170px);
+}
+.esquina,
+.cabecera-dia {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--olivo-50);
+  border-bottom: 1px solid var(--borde);
+  height: 42px;
+}
+.esquina {
+  left: 0;
+  z-index: 4;
+}
+.cabecera-dia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-weight: 600;
+  color: var(--olivo-900);
+  border-left: 1px solid var(--borde);
+}
+.conteo {
+  font-family: var(--fuente-mono);
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+.columna-horas {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--superficie);
+  display: grid;
+  grid-template-rows: repeat(var(--filas), var(--alto-hora));
+}
+.etiqueta-hora {
+  font-family: var(--fuente-mono);
+  font-size: 11px;
+  color: var(--texto-suave);
+  text-align: right;
+  padding: 4px 8px 0 0;
+  border-top: 1px solid var(--borde-suave);
+}
+.columna-dia {
+  display: grid;
+  border-left: 1px solid var(--borde);
+}
+.capa-franjas,
+.capa-sesiones {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-rows: repeat(var(--filas), var(--alto-hora));
+}
+.franja {
+  border-top: 1px solid var(--borde-suave);
+  position: relative;
+  transition: background 0.1s;
+}
+.editable .franja:hover {
+  background: var(--olivo-50);
+}
+.franja.resaltada {
+  background: var(--naranja-100);
+  box-shadow: inset 0 0 0 2px var(--naranja-500);
+}
+.indicador {
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  font-family: var(--fuente-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--naranja-700);
+  z-index: 5;
+}
+.capa-sesiones {
+  grid-auto-flow: row dense;
+  grid-auto-columns: minmax(0, 1fr);
+  column-gap: 3px;
+  padding: 0 3px;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+.capa-sesiones > app-tarjeta-sesion {
+  pointer-events: auto;
+  padding: 2px 0;
+}
+.editable .capa-sesiones > app-tarjeta-sesion {
+  cursor: grab;
+}
+.arrastrando .capa-sesiones > app-tarjeta-sesion {
+  pointer-events: none;
+  opacity: 0.55;
+}

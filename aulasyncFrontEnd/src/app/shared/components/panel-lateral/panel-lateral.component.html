@@ -1,0 +1,14 @@
+@if (abierto()) {
+  <div class="fondo" (click)="cerrar.emit()"></div>
+  <aside class="panel" [style.width]="ancho()" role="dialog" [attr.aria-label]="titulo()">
+    <header>
+      <h2>{{ titulo() }}</h2>
+      <button type="button" class="boton-icono" (click)="cerrar.emit()" aria-label="Cerrar">
+        <app-icono nombre="cerrar" />
+      </button>
+    </header>
+    <div class="contenido">
+      <ng-content />
+    </div>
+  </aside>
+}

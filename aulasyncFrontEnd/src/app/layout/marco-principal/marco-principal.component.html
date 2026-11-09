@@ -1,0 +1,42 @@
+<div class="marco" [class.menu-abierto]="menuAbierto()">
+  <aside class="lateral">
+    <div class="marca">
+      <img src="isotipo-bosque.png" alt="" width="40" height="40" />
+      <div>
+        <strong>AulaSync</strong>
+        <span>Universidad El Bosque</span>
+      </div>
+    </div>
+
+    <nav>
+      @for (item of menu(); track item.ruta) {
+        <a [routerLink]="item.ruta" routerLinkActive="activo" (click)="menuAbierto.set(false)">
+          <app-icono [nombre]="item.icono" />
+          {{ item.etiqueta }}
+        </a>
+      }
+    </nav>
+
+    @if (sesionService.usuario(); as usuario) {
+      <div class="usuario">
+        <div class="avatar">{{ usuario.nombre.charAt(0) }}</div>
+        <div class="datos">
+          <strong>{{ usuario.nombre }}</strong>
+          <span>{{ usuario.rol | etiqueta: 'rol' }}</span>
+        </div>
+        <button type="button" class="salir" (click)="cerrarSesion()" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <app-icono nombre="salir" />
+        </button>
+      </div>
+    }
+  </aside>
+
+  <div class="velo" (click)="menuAbierto.set(false)"></div>
+
+  <main class="contenido">
+    <button type="button" class="boton-menu" (click)="alternarMenu()" aria-label="Abrir menú">
+      <app-icono nombre="capas" />
+    </button>
+    <router-outlet />
+  </main>
+</div>

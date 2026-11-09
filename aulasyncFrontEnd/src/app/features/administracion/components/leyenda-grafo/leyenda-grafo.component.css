@@ -1,0 +1,52 @@
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--olivo-700);
+}
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.punto {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px var(--borde);
+}
+.anillo {
+  background: var(--olivo-700);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--olivo-900);
+}
+.linea {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+}
+.arcoiris {
+  width: 34px;
+  height: 11px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #c2453a, #e8890c, #9a7b12, #5c7a2e, #2f7f86, #3d5ea8, #8a4fa3);
+}
+.separador {
+  width: 1px;
+  height: 16px;
+  background: var(--borde);
+}
+.tamano .punto {
+  background: var(--olivo-100);
+}
+.chico {
+  width: 7px;
+  height: 7px;
+}
+.grande {
+  width: 14px;
+  height: 14px;
+  margin-left: -2px;
+}

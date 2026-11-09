@@ -1,0 +1,23 @@
+<div class="leyenda">
+  @switch (modo()) {
+    @case ('docente') {
+      <span class="item"><span class="arcoiris"></span>Un color por docente ({{ traza().totalDocentes }})</span>
+    }
+    @case ('grupo') {
+      <span class="item"><span class="arcoiris"></span>Un color por grupo ({{ traza().totalComponentes }})</span>
+    }
+  }
+  @for (item of puntos(); track item.etiqueta) {
+    <span class="item"><span class="punto" [style.background]="item.color"></span>{{ item.etiqueta }}</span>
+  }
+  @if (marcarRaices()) {
+    <span class="item"><span class="punto anillo"></span>Raíz de la componente</span>
+  }
+  @if (lineas().length > 0) {
+    <span class="separador"></span>
+  }
+  @for (item of lineas(); track item.etiqueta) {
+    <span class="item"><span class="linea" [style.background]="item.color"></span>{{ item.etiqueta }}</span>
+  }
+  <span class="item tamano"><span class="punto chico"></span><span class="punto grande"></span>Tamaño = grado</span>
+</div>

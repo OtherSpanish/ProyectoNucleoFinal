@@ -1,0 +1,86 @@
+@let n = nodo();
+@let todos = traza().nodos;
+<header>
+  <div>
+    <span class="codigo">{{ n.cursoCodigo }} · G{{ n.numeroGrupo }} · sesión {{ n.numeroSesion }}</span>
+    <h3>{{ n.cursoNombre }}</h3>
+  </div>
+  <button type="button" class="boton-icono" (click)="cerrar.emit()" aria-label="Cerrar detalle"><app-icono nombre="cerrar" [tamano]="16" /></button>
+</header>
+
+<div class="lista-insignias">
+  <span class="insignia">Semestre {{ n.semestre }}</span>
+  <span class="insignia">{{ n.duracionHoras }} h</span>
+  <span class="insignia">{{ n.estudiantes }} estudiantes</span>
+  <span class="insignia">{{ n.tipoAula | etiqueta: 'tipoAula' }}</span>
+  @if (n.nucleoComun) {
+    <span class="insignia insignia-alerta">Núcleo común</span>
+  }
+  <span class="insignia">Grado {{ n.grado }}</span>
+</div>
+
+<h4>Lo que este nodo tiene en cuenta</h4>
+
+<section class="factor" data-tipo="docente">
+  <div class="titulo"><span class="marca"></span>Docente: {{ n.docenteNombre }}</div>
+  <p>No puede cruzarse con {{ n.vecinosDocente.length }} sesión(es) del mismo docente. Además, el docente debe estar disponible en la franja y no pasar su tope de horas semanales.</p>
+  <div class="chips">
+    @for (j of n.vecinosDocente; track j) {
+      <button type="button" (click)="seleccionar.emit(j)">{{ todos[j].cursoCodigo }} G{{ todos[j].numeroGrupo }}·s{{ todos[j].numeroSesion }}</button>
+    }
+  </div>
+</section>
+
+<section class="factor" data-tipo="grupo">
+  <div class="titulo"><span class="marca"></span>Grupo y componente DSU</div>
+  <p>
+    Sus {{ n.miembrosComponente.length }} sesión(es) semanales forman una componente (raíz: nodo {{ n.raizDsu }}). No pueden ir a la misma hora
+    ni el mismo día, para que el grupo quede repartido en la semana.
+  </p>
+  <div class="chips">
+    @for (j of n.miembrosComponente; track j) {
+      <button type="button" [class.actual]="j === n.indice" (click)="seleccionar.emit(j)">
+        {{ todos[j].cursoCodigo }} G{{ todos[j].numeroGrupo }}·s{{ todos[j].numeroSesion }}
+      </button>
+    }
+  </div>
+</section>
+
+<section class="factor" data-tipo="bloque">
+  <div class="titulo"><span class="marca"></span>Bloque G{{ n.numeroGrupo }} (semestres {{ n.semestre - 1 || 1 }}–{{ n.semestre + 1 }})</div>
+  <p>Comparte estudiantes con {{ n.vecinosBloque.length }} sesión(es) de otras materias del mismo bloque, así que no pueden coincidir.</p>
+  <div class="chips">
+    @for (j of n.vecinosBloque; track j) {
+      <button type="button" (click)="seleccionar.emit(j)">{{ todos[j].cursoCodigo }} G{{ todos[j].numeroGrupo }}·s{{ todos[j].numeroSesion }}</button>
+    } @empty {
+      <span class="texto-suave">Sin conflictos de bloque.</span>
+    }
+  </div>
+</section>
+
+<section class="factor" data-tipo="aula">
+  <div class="titulo"><span class="marca"></span>Sede y aula</div>
+  <p>
+    Necesita un aula {{ n.tipoAula | etiqueta: 'tipoAula' }} libre con capacidad para {{ n.estudiantes }} estudiantes en una sede permitida.
+    @if (n.nucleoComun && n.semestre === 1) {
+      Por ser núcleo común de primer semestre, aplica la regla de la sede de primer semestre y sus días por bloque.
+    }
+  </p>
+</section>
+
+<h4>Cómo lo evaluó DSatur</h4>
+@if (paso(); as datos) {
+  <p class="resumen">
+    Elegido en el paso <strong>{{ datos.numero }}</strong> de {{ traza().pasos.length }}, con {{ datos.saturacion }} franjas bloqueadas y
+    {{ datos.grado }} vecinos.
+  </p>
+  <app-barras-bloqueo [paso]="datos" />
+  @if (n.ubicada) {
+    <div class="aviso aviso-exito resultado">{{ n.diaNombre }} {{ n.horaInicio | hora }}–{{ n.horaFin | hora }} · {{ n.aulaNombre }} · {{ n.sedeNombre }}</div>
+  } @else {
+    <div class="aviso aviso-peligro resultado">Sin ubicar: {{ n.causaDescripcion }}</div>
+  }
+  <button type="button" class="boton boton-secundario ancho-completo" (click)="verPaso.emit(datos.numero)">
+    <app-icono nombre="motor" [tamano]="16" /> Ver este paso en DSatur
+  </button>
+}

@@ -1,0 +1,103 @@
+<app-encabezado-pagina
+  titulo="Consultar horario"
+  descripcion="Busca en el horario guardado por docente, aula, sede, curso o grupo. Útil para ver la semana de un profesor o la ocupación de un salón."
+>
+  <button type="button" class="boton boton-secundario" (click)="limpiar()">Limpiar filtros</button>
+</app-encabezado-pagina>
+
+<div class="barra-filtros">
+  <label class="campo">
+    <span>Docente</span>
+    <select [(ngModel)]="filtro.docenteId" (ngModelChange)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      @for (docente of docentes(); track docente.id) {
+        <option [ngValue]="docente.id">{{ docente.usuario.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Sede</span>
+    <select [(ngModel)]="filtro.sedeId" (ngModelChange)="consultar()">
+      <option [ngValue]="null">Todas</option>
+      @for (sede of sedes(); track sede.id) {
+        <option [ngValue]="sede.id">{{ sede.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Aula</span>
+    <select [(ngModel)]="filtro.aulaId" (ngModelChange)="consultar()">
+      <option [ngValue]="null">Todas</option>
+      @for (aula of aulas(); track aula.id) {
+        <option [ngValue]="aula.id">{{ aula.nombre }} · {{ aula.sedeNombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Semestre</span>
+    <select [(ngModel)]="filtro.semestre" (ngModelChange)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      @for (semestre of semestres(); track semestre.id) {
+        <option [ngValue]="semestre.numero">{{ semestre.numero }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Curso</span>
+    <select [(ngModel)]="filtro.cursoId" (ngModelChange)="cambiarCurso()">
+      <option [ngValue]="null">Todos</option>
+      @for (curso of cursos(); track curso.id) {
+        <option [ngValue]="curso.id">{{ curso.codigo }} · {{ curso.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Grupo</span>
+    <select [(ngModel)]="filtro.grupoId" (ngModelChange)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      @for (grupo of grupos(); track grupo.id) {
+        <option [ngValue]="grupo.id">{{ grupo.cursoCodigo }} G{{ grupo.numero }}</option>
+      }
+    </select>
+  </label>
+  <label class="casilla">
+    <input type="checkbox" [(ngModel)]="filtro.soloUbicadas" (ngModelChange)="consultar()" />
+    Solo ubicadas
+  </label>
+</div>
+
+@if (cargando()) {
+  <div class="cargando">Consultando horario…</div>
+} @else if (sesiones().length === 0) {
+  <app-estado-vacio mensaje="No hay sesiones con esos filtros." icono="calendario" />
+} @else {
+  <p class="total">{{ sesiones().length }} sesiones</p>
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Día</th><th>Hora</th><th>Curso</th><th>Grupo</th><th>Semestre</th><th>Docente</th><th>Aula</th><th>Sede</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        @for (sesion of sesiones(); track sesion.id) {
+          <tr [class.sin-ubicar]="!sesion.ubicada">
+            <td>{{ sesion.diaNombre ?? '—' }}</td>
+            <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
+            <td><span class="mono">{{ sesion.cursoCodigo }}</span> {{ sesion.cursoNombre }}</td>
+            <td class="mono">G{{ sesion.numeroGrupo }}·s{{ sesion.numeroSesion }}</td>
+            <td class="mono">{{ sesion.semestre }}</td>
+            <td>{{ sesion.docenteNombre }}</td>
+            <td>{{ sesion.aulaNombre ?? '—' }}</td>
+            <td>{{ sesion.sedeNombre ?? '—' }}</td>
+            <td>
+              @if (sesion.ubicada) {
+                <span class="insignia insignia-exito">Ubicada</span>
+              } @else {
+                <span class="insignia insignia-alerta" [title]="sesion.detalleCausa ?? ''">Sin ubicar</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

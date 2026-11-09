@@ -1,0 +1,48 @@
+@if (paso(); as datos) {
+  @let nodo = traza().nodos[datos.nodo];
+  <div class="cabeza">
+    <span class="numero">Paso {{ datos.numero }} / {{ traza().pasos.length }}</span>
+    @if (datos.ubicada) {
+      <span class="insignia insignia-exito">Ubicada</span>
+    } @else {
+      <span class="insignia insignia-peligro">Sin ubicar</span>
+    }
+  </div>
+  <button type="button" class="sesion" (click)="verNodo.emit(nodo.indice)">
+    <strong>{{ nodo.cursoCodigo }} · G{{ nodo.numeroGrupo }} · sesión {{ nodo.numeroSesion }}</strong>
+    <span>{{ nodo.cursoNombre }} · {{ nodo.docenteNombre }}</span>
+  </button>
+
+  <h4>¿Por qué esta sesión?</h4>
+  <p>
+    Era la más restringida de las pendientes: tenía <strong>{{ datos.saturacion }}</strong> de
+    {{ datos.franjasCandidatas }} franjas bloqueadas (saturación). En caso de empate decide el grado: tiene
+    <strong>{{ datos.grado }}</strong> vecinos en el grafo.
+  </p>
+
+  <h4>Reglas revisadas</h4>
+  <app-barras-bloqueo [paso]="datos" />
+
+  <h4>Decisión</h4>
+  @if (datos.ubicada) {
+    <div class="aviso aviso-exito">
+      <div>
+        <strong>{{ datos.diaNombre }} {{ datos.horaInicio | hora }}</strong> en {{ datos.aulaNombre }} ({{ datos.sedeNombre }}).
+        Entre las {{ datos.franjasViables }} franjas viables eligió la del día con menos carga
+        (carga {{ datos.cargaDia }}: clases del mismo docente o bloque ese día; el sábado suma 1).
+      </div>
+    </div>
+  } @else {
+    <div class="aviso aviso-peligro">
+      <div>
+        No quedó ninguna franja viable. Causa principal: <strong>{{ datos.causaDescripcion }}</strong>
+        El motor es voraz: no mueve sesiones ya ubicadas para hacerle espacio.
+      </div>
+    </div>
+  }
+} @else {
+  <p class="inicio">
+    Ningún nodo ha sido procesado todavía. Usa <strong>Reproducir</strong> o <strong>Siguiente</strong> para ver cómo DSatur
+    va eligiendo y ubicando sesiones una por una.
+  </p>
+}

@@ -1,0 +1,71 @@
+<app-encabezado-pagina titulo="Sedes" descripcion="Campus donde se dictan clases y las franjas en que cada uno está abierto.">
+  <button type="button" class="boton boton-primario" (click)="nueva()">
+    <app-icono nombre="mas" [tamano]="16" /> Nueva sede
+  </button>
+</app-encabezado-pagina>
+
+@if (cargando()) {
+  <div class="cargando">Cargando sedes…</div>
+} @else if (sedes().length === 0) {
+  <app-estado-vacio mensaje="No hay sedes registradas." icono="sede" />
+} @else {
+  <div class="cuadricula">
+    @for (sede of sedes(); track sede.id) {
+      <article class="tarjeta sede">
+        <header>
+          <div>
+            <h3>{{ sede.nombre }}</h3>
+            @if (sede.exclusivaPrimerSemestre) {
+              <span class="insignia insignia-alerta">Primer semestre · {{ sede.diasPrimerSemestre }} días/semana</span>
+            } @else {
+              <span class="insignia">Todos los semestres</span>
+            }
+          </div>
+          <div>
+            <button type="button" class="boton-icono" (click)="editar(sede)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+            <button type="button" class="boton-icono peligro" (click)="eliminar(sede)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+          </div>
+        </header>
+        <ul class="franjas">
+          @for (franja of sede.franjas; track $index) {
+            <li><span>{{ franja.dia | etiqueta: 'dia' }}</span><span class="mono">{{ franja.horaInicio | hora }}–{{ franja.horaFin | hora }}</span></li>
+          } @empty {
+            <li class="texto-suave">Sin franjas configuradas.</li>
+          }
+        </ul>
+        <button type="button" class="boton boton-secundario" (click)="abrirFranjas(sede)">
+          <app-icono nombre="reloj" [tamano]="16" /> Editar franjas
+        </button>
+      </article>
+    }
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nueva sede' : 'Editar sede'" [abierto]="panelSedeAbierto()" (cerrar)="panelSedeAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" placeholder="Ej. Usaquén" /></label>
+    <label class="casilla">
+      <input type="checkbox" name="exclusiva" [(ngModel)]="formulario.exclusivaPrimerSemestre" />
+      Sede exclusiva de primer semestre (núcleo común)
+    </label>
+    @if (formulario.exclusivaPrimerSemestre) {
+      <label class="campo">
+        <span>Días por semana que asiste primer semestre</span>
+        <input type="number" name="dias" [(ngModel)]="formulario.diasPrimerSemestre" />
+      </label>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelSedeAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-panel-lateral [titulo]="'Franjas · ' + (sedeFranjas()?.nombre ?? '')" [abierto]="sedeFranjas() !== null" ancho="560px" (cerrar)="sedeFranjas.set(null)">
+  <p class="texto-suave ayuda">Horas en que la sede recibe clases. Deja por fuera el almuerzo si no hay clases a esa hora.</p>
+  <app-editor-franjas [(franjas)]="franjas" />
+  <div class="fila-acciones">
+    <button type="button" class="boton boton-secundario" (click)="sedeFranjas.set(null)">Cancelar</button>
+    <button type="button" class="boton boton-primario" [disabled]="guardando()" (click)="guardarFranjas()">Guardar franjas</button>
+  </div>
+</app-panel-lateral>

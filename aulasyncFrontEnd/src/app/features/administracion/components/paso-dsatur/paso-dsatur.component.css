@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+.cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.numero {
+  font-family: var(--fuente-mono);
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+.sesion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--naranja-300);
+  background: var(--naranja-100);
+  font: inherit;
+  cursor: pointer;
+}
+.sesion strong {
+  color: var(--naranja-700);
+}
+.sesion span {
+  font-size: 12.5px;
+  color: var(--olivo-700);
+}
+h4 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+.aviso {
+  font-size: 13px;
+}
+.inicio {
+  color: var(--texto-suave);
+}

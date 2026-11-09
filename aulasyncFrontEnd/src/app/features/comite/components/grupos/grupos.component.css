@@ -1,0 +1,6 @@
+.barra-filtros .campo {
+  max-width: 280px;
+}
+td .mono + strong {
+  margin-left: 4px;
+}

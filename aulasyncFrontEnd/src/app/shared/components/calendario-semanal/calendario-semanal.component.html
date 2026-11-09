@@ -1,0 +1,59 @@
+@let cal = calendario();
+@let horas = cal.horaMinima | rangoHoras: cal.horaMaxima;
+<div class="marco">
+  <div
+    class="calendario"
+    [class.arrastrando]="arrastre.arrastrando()"
+    [class.editable]="editable()"
+    [style.--filas]="horas.length"
+    [style.--dias]="cal.dias.length"
+  >
+    <div class="esquina"></div>
+    @for (dia of cal.dias; track dia.dia) {
+      <div class="cabecera-dia">
+        <span>{{ dia.diaNombre }}</span>
+        <span class="conteo">{{ dia.sesiones.length }}</span>
+      </div>
+    }
+
+    <div class="columna-horas">
+      @for (hora of horas; track hora) {
+        <div class="etiqueta-hora">{{ hora | hora }}</div>
+      }
+    </div>
+
+    @for (dia of cal.dias; track dia.dia) {
+      <div class="columna-dia">
+        <div class="capa-franjas">
+          @for (hora of horas; track hora) {
+            <div
+              class="franja"
+              [class.resaltada]="franjaResaltada() === dia.dia + hora"
+              [attr.data-dia]="dia.dia"
+              [attr.data-hora]="hora"
+              (dragover)="alArrastrarSobre($event, dia.dia + hora)"
+              (dragleave)="alSalirDeFranja()"
+              (drop)="alSoltar($event, dia, hora)"
+            >
+              @if (franjaResaltada() === dia.dia + hora) {
+                <span class="indicador">{{ dia.diaNombre }} {{ hora | hora }}</span>
+              }
+            </div>
+          }
+        </div>
+        <div class="capa-sesiones">
+          @for (sesion of dia.sesiones; track sesion.id) {
+            <app-tarjeta-sesion
+              [sesion]="sesion"
+              [style.grid-row]="sesion | filaCalendario: cal.horaMinima"
+              [attr.draggable]="editable()"
+              [attr.data-sesion-id]="sesion.id"
+              (dragstart)="alIniciarArrastre($event, sesion)"
+              (dragend)="alTerminarArrastre()"
+            />
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,61 @@
+@let datos = traza();
+@let puntos = posiciones();
+@let hayFoco = seleccionado() !== null || nodoActual() >= 0;
+<div
+  #lienzo
+  class="lienzo"
+  (wheel)="alGirarRueda($event)"
+  (pointerdown)="alPresionar($event)"
+  (pointermove)="alMover($event, lienzo)"
+  (pointerup)="alSoltar()"
+  (pointerleave)="alSoltar()"
+>
+  <svg [attr.viewBox]="vistaCaja()" preserveAspectRatio="xMidYMid meet" (click)="alClicFondo()" role="img" aria-label="Grafo de conflictos entre sesiones">
+    <g class="aristas" [class.con-foco]="hayFoco">
+      @for (arista of aristasVisibles(); track $index) {
+        <line
+          [attr.x1]="puntos[arista.origen].x"
+          [attr.y1]="puntos[arista.origen].y"
+          [attr.x2]="puntos[arista.destino].x"
+          [attr.y2]="puntos[arista.destino].y"
+          [attr.stroke]="colorArista(arista)"
+          [class.enfocada]="tocaSeleccion(arista)"
+        />
+      }
+    </g>
+    <g class="nodos">
+      @for (nodo of datos.nodos; track nodo.indice) {
+        @let p = puntos[nodo.indice];
+        @let r = radio(nodo);
+        <g
+          class="nodo"
+          [attr.transform]="'translate(' + p.x + ' ' + p.y + ')'"
+          [class.seleccionado]="nodo.indice === seleccionado()"
+          [class.actual]="nodo.indice === nodoActual()"
+          [class.atenuado]="hayFoco && !resaltados().has(nodo.indice)"
+          [attr.data-nodo]="nodo.indice"
+          (click)="alClicNodo($event, nodo)"
+        >
+          <title>{{ nodo.cursoCodigo }} G{{ nodo.numeroGrupo }} · sesión {{ nodo.numeroSesion }} · {{ nodo.docenteNombre }}</title>
+          <circle class="halo" [attr.r]="r + 9" />
+          <circle class="punto" [attr.r]="r" [attr.fill]="nodo | colorNodo: modoColor() : pasoActual()" />
+          @if (marcarRaices() && nodo.raizDsu === nodo.indice && nodo.miembrosComponente.length > 1) {
+            <circle class="raiz" [attr.r]="r + 4.5" />
+          }
+          @if ((modoColor() === 'dia' || (modoColor() === 'dsatur' && nodo.orden <= pasoActual())) && !nodo.ubicada) {
+            <path class="cruz" [attr.d]="'M' + -r / 2 + ' ' + -r / 2 + 'L' + r / 2 + ' ' + r / 2 + 'M' + r / 2 + ' ' + -r / 2 + 'L' + -r / 2 + ' ' + r / 2" />
+          }
+          @if (etiquetaVisible(nodo)) {
+            <text [attr.y]="-r - 9">{{ nodo.cursoCodigo }} G{{ nodo.numeroGrupo }}</text>
+          }
+        </g>
+      }
+    </g>
+  </svg>
+
+  <div class="controles-zoom">
+    <button type="button" (click)="acercar(1.25)" aria-label="Acercar">+</button>
+    <button type="button" (click)="acercar(0.8)" aria-label="Alejar">−</button>
+    <button type="button" (click)="restablecerVista()" aria-label="Restablecer vista">⟲</button>
+  </div>
+</div>

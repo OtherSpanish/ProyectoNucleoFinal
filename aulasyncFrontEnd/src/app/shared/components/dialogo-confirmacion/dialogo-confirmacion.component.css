@@ -1,0 +1,29 @@
+.fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 36, 18, 0.4);
+  z-index: 60;
+}
+.dialogo {
+  position: fixed;
+  z-index: 61;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 32px));
+  background: var(--superficie);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(30, 36, 18, 0.3);
+}
+h2 {
+  margin: 0 0 8px;
+  font-family: var(--fuente-titulo);
+  font-size: 21px;
+  color: var(--olivo-900);
+}
+p {
+  margin: 0 0 20px;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
