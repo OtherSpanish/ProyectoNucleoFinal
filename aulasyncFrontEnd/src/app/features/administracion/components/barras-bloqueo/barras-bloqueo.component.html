@@ -1,0 +1,16 @@
+@let datos = paso();
+<ol class="reglas">
+  @for (bloqueo of datos.bloqueos; track bloqueo.motivo) {
+    <li [class.sin-efecto]="bloqueo.franjas === 0" [title]="bloqueo.descripcion">
+      <span class="nombre">{{ $index + 1 }}. {{ bloqueo.motivo | etiqueta: 'motivos' }}</span>
+      <span class="barra"><span [style.width.%]="(bloqueo.franjas / datos.franjasCandidatas) * 100"></span></span>
+      <span class="numero">{{ bloqueo.franjas }}</span>
+    </li>
+  }
+  <li class="viables">
+    <span class="nombre">Franjas viables</span>
+    <span class="barra"><span [style.width.%]="(datos.franjasViables / datos.franjasCandidatas) * 100"></span></span>
+    <span class="numero">{{ datos.franjasViables }}</span>
+  </li>
+</ol>
+<p class="nota">De {{ datos.franjasCandidatas }} franjas candidatas. Cada franja se descarta por la primera regla que no cumple.</p>

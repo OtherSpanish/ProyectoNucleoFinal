@@ -1,21 +1,40 @@
-import { RolTecnico } from './models';
+import { Rol } from './models';
 
 export interface ItemMenu {
   ruta: string;
   etiqueta: string;
   descripcion: string;
-  roles: RolTecnico[];
+  roles: Rol[];
 }
 
-// Verificación de la Vista por rol (Tabla 23 del documento).
+/** Opciones del menú por rol. Los permisos coinciden con los @PreAuthorize del back. */
 export const MENU: ItemMenu[] = [
-  { ruta: 'datos-maestros', etiqueta: 'Datos maestros', descripcion: 'Cursos, secciones, docentes, aulas y grupos (CU01).', roles: ['COMITE_TACTICO'] },
-  { ruta: 'disponibilidad', etiqueta: 'Disponibilidad docente', descripcion: 'Franjas disponibles y dedicación de cada docente (CU02).', roles: ['COMITE_TACTICO'] },
-  { ruta: 'generar', etiqueta: 'Generar propuesta', descripcion: 'Propuesta inicial y sesiones sin ubicar (CU04).', roles: ['COMITE_TACTICO'] },
-  { ruta: 'editor', etiqueta: 'Editor de horario', descripcion: 'Arrastrar y soltar con validación en tiempo real (CU06–CU07).', roles: ['COMITE_TACTICO'] },
-  { ruta: 'calendario', etiqueta: 'Calendario semanal', descripcion: 'Vista del horario generado (CU05).', roles: ['COMITE_TACTICO', 'DIRECCION'] },
-  { ruta: 'consulta', etiqueta: 'Consultar horario', descripcion: 'Por curso o por docente, con exportación (CU08–CU09).', roles: ['DIRECCION'] },
-  { ruta: 'historial', etiqueta: 'Historial de cambios', descripcion: 'Auditoría de modificaciones por sesión (CU10).', roles: ['DIRECCION', 'ADMINISTRADOR'] },
-  { ruta: 'configuracion', etiqueta: 'Configuración', descripcion: 'Franja general, duración y límites de grupo (CU03).', roles: ['ADMINISTRADOR'] },
-  { ruta: 'usuarios', etiqueta: 'Usuarios y roles', descripcion: 'Gestión de usuarios y roles (CU12).', roles: ['ADMINISTRADOR'] },
+  // ---- Docente
+  { ruta: 'mi-horario', etiqueta: 'Mi horario', descripcion: 'Tu calendario semanal de clases.', roles: ['DOCENTE'] },
+  { ruta: 'mis-cursos', etiqueta: 'Mis cursos', descripcion: 'Los grupos que dictas y sus estudiantes.', roles: ['DOCENTE'] },
+  { ruta: 'mi-disponibilidad', etiqueta: 'Mi disponibilidad', descripcion: 'Las franjas en que puedes dictar clase.', roles: ['DOCENTE'] },
+
+  // ---- Comité táctico
+  { ruta: 'cursos', etiqueta: 'Cursos', descripcion: 'Materias por semestre, tipo de aula e intensidad horaria.', roles: ['COMITE', 'ADMIN'] },
+  { ruta: 'grupos', etiqueta: 'Grupos e inscritos', descripcion: 'Grupos de cada curso, docente asignado y estudiantes inscritos.', roles: ['COMITE', 'ADMIN'] },
+  { ruta: 'generar', etiqueta: 'Generar horario', descripcion: 'Propuesta del motor, horario guardado y sesiones sin ubicar.', roles: ['COMITE'] },
+  { ruta: 'editor', etiqueta: 'Editor de horario', descripcion: 'Arrastrar y soltar sesiones con validación en tiempo real.', roles: ['COMITE'] },
+
+  // ---- Administrador
+  { ruta: 'usuarios', etiqueta: 'Usuarios', descripcion: 'Cuentas de acceso y roles del sistema.', roles: ['ADMIN'] },
+
+  // ---- Compartidas
+  { ruta: 'docentes', etiqueta: 'Docentes', descripcion: 'Docentes, dedicación, especialidades y disponibilidad.', roles: ['ADMIN', 'COMITE'] },
+  { ruta: 'catalogos', etiqueta: 'Catálogos', descripcion: 'Especialidades, semestres, sedes, aulas y estudiantes.', roles: ['ADMIN', 'COMITE'] },
+  { ruta: 'calendario', etiqueta: 'Calendario semanal', descripcion: 'El horario guardado en un calendario por semestre.', roles: ['ADMIN', 'COMITE'] },
+  { ruta: 'consulta', etiqueta: 'Consultar horario', descripcion: 'Listado con filtros y exportación a CSV.', roles: ['ADMIN', 'COMITE'] },
 ];
+
+export function menuPara(rol: Rol | null): ItemMenu[] {
+  return rol ? MENU.filter((m) => m.roles.includes(rol)) : [];
+}
+
+/** Primera pantalla de cada rol. */
+export function rutaInicial(rol: Rol | null): string {
+  return rol === 'DOCENTE' ? '/mi-horario' : '/inicio';
+}

@@ -1,40 +1,44 @@
 import { Component, inject } from '@angular/core';
-import { NgFor, NgIf } from '@angular/common';
+import { NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { DataService } from '../../core/data.service';
-import { etiquetaRol } from '../../core/models';
+import { rutaInicial } from '../../core/menu';
+import { mensajeError } from '../../core/errores';
 
-/** CU12 – Inicio de sesión (RF10, CA10). */
+/** Inicio de sesión: POST /api/auth/login con { correo, password }. */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgIf, FormsModule],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
-  data = inject(DataService);
 
-  usuario = '';
-  clave = '';
+  correo = '';
+  password = '';
   error = '';
-
-  rol = etiquetaRol;
+  aviso = this.auth.aviso;
+  cargando = false;
 
   ingresar(): void {
-    if (this.auth.login(this.usuario.trim(), this.clave)) {
-      this.error = '';
-      this.router.navigate(['/inicio']);
-    } else {
-      this.error = 'Usuario o contraseña incorrectos, o usuario inactivo.';
+    if (!this.correo.trim() || !this.password) {
+      this.error = 'Escribe tu correo y tu contraseña.';
+      return;
     }
-  }
-
-  usar(usuario: string, clave: string): void {
-    this.usuario = usuario;
-    this.clave = clave;
+    this.cargando = true;
+    this.error = '';
+    this.auth.login(this.correo, this.password).subscribe({
+      next: (r) => {
+        this.cargando = false;
+        this.router.navigate([rutaInicial(r.usuario.rol)]);
+      },
+      error: (e) => {
+        this.cargando = false;
+        this.error = mensajeError(e);
+      },
+    });
   }
 }

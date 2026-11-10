@@ -1,0 +1,29 @@
+<div class="pantalla">
+  <section class="presentacion">
+    <img src="logo-bosque.png" alt="Universidad El Bosque" class="logo" />
+    <h1>AulaSync</h1>
+  </section>
+
+  <section class="formulario-zona">
+    <form class="formulario" (ngSubmit)="iniciarSesion()">
+      <img src="isotipo-bosque.png" alt="" class="isotipo" width="56" height="56" />
+      <h2>Iniciar sesión</h2>
+      <p class="texto-suave">Ingresa con tu correo institucional.</p>
+
+      <label class="campo">
+        <span>Correo</span>
+        <input type="email" name="correo" [(ngModel)]="credenciales.correo" autocomplete="username" autofocus />
+      </label>
+      <label class="campo">
+        <span>Contraseña</span>
+        <input type="password" name="password" [(ngModel)]="credenciales.password" autocomplete="current-password" />
+      </label>
+
+      <button type="submit" class="boton boton-primario ancho-completo" [disabled]="enviando()">
+        {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+    </form>
+  </section>
+
+  <app-pie-pagina class="pie" />
+</div>

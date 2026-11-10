@@ -1,0 +1,81 @@
+@let datos = resultado();
+<div class="estadisticas">
+  <div class="estadistica"><strong>{{ datos.gruposProgramados }}</strong><span>Grupos programados</span></div>
+  <div class="estadistica"><strong>{{ datos.totalSesiones }}</strong><span>Sesiones totales</span></div>
+  <div class="estadistica"><strong>{{ datos.sesionesUbicadas }}</strong><span>Ubicadas</span></div>
+  <div class="estadistica destacada"><strong>{{ datos.sesionesSinUbicar }}</strong><span>Sin ubicar</span></div>
+</div>
+
+@if (datos.avisos.length > 0) {
+  <section>
+    <h3>Avisos</h3>
+    <div class="aviso">
+      <ul>
+        @for (aviso of datos.avisos; track $index) {
+          <li>{{ aviso }}</li>
+        }
+      </ul>
+    </div>
+  </section>
+}
+
+@if (datos.gruposNoAbiertos.length > 0) {
+  <section>
+    <h3>Grupos que no se abrieron</h3>
+    <div class="lista-insignias">
+      @for (grupo of datos.gruposNoAbiertos; track $index) {
+        <span class="insignia insignia-alerta">{{ grupo }}</span>
+      }
+    </div>
+  </section>
+}
+
+<section>
+  <h3>Sesiones sin ubicar</h3>
+  @for (sesion of datos.sinUbicar; track $index) {
+    <details class="sin-ubicar">
+      <summary>
+        <span class="mono">{{ sesion.cursoCodigo }} G{{ sesion.numeroGrupo }} · S{{ sesion.semestre }}</span>
+        <strong>{{ sesion.cursoNombre }}</strong>
+        <span class="causa">{{ sesion.causaDescripcion }}</span>
+      </summary>
+      <p class="texto-suave">
+        Sesión {{ sesion.numeroSesion }} · {{ sesion.duracionHoras }} h · {{ sesion.docenteNombre }} · {{ sesion.estudiantes }} estudiantes
+      </p>
+      <table class="tabla">
+        <thead><tr><th>Causa</th><th>Franjas descartadas</th></tr></thead>
+        <tbody>
+          @for (causa of sesion.desglose; track causa.motivo) {
+            <tr><td>{{ causa.descripcion }}</td><td class="mono">{{ causa.franjas }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </details>
+  } @empty {
+    <div class="aviso aviso-exito"><app-icono nombre="check" /> Todas las sesiones encontraron lugar.</div>
+  }
+</section>
+
+@if (mostrarUbicadas()) {
+  <section>
+    <h3>Sesiones ubicadas</h3>
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead><tr><th>Curso</th><th>Grupo</th><th>Día</th><th>Hora</th><th>Aula</th><th>Sede</th><th>Docente</th></tr></thead>
+        <tbody>
+          @for (sesion of datos.ubicadas; track $index) {
+            <tr>
+              <td><span class="mono">{{ sesion.cursoCodigo }}</span> {{ sesion.cursoNombre }}</td>
+              <td class="mono">G{{ sesion.numeroGrupo }}</td>
+              <td>{{ sesion.diaNombre }}</td>
+              <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
+              <td>{{ sesion.aulaNombre }}</td>
+              <td>{{ sesion.sedeNombre }}</td>
+              <td>{{ sesion.docenteNombre }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

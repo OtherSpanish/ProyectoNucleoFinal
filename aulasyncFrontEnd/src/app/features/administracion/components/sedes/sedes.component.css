@@ -1,0 +1,33 @@
+.cuadricula {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.sede {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sede header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.sede h3 {
+  margin-bottom: 6px;
+}
+.franjas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+.franjas li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--borde-suave);
+}
+.ayuda {
+  margin: 0 0 16px;
+}

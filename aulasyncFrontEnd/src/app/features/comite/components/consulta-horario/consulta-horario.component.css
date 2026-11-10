@@ -1,0 +1,15 @@
+.barra-filtros .campo {
+  min-width: 150px;
+  max-width: 260px;
+}
+.total {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--olivo-700);
+}
+td.mono {
+  white-space: nowrap;
+}
+.sin-ubicar td {
+  background: #fffaf2;
+}

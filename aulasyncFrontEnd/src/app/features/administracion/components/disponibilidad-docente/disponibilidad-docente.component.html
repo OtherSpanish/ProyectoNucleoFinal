@@ -1,0 +1,20 @@
+@if (disponibilidad(); as datos) {
+  <div class="estadisticas">
+    <div class="estadistica">
+      <strong>{{ datos.horasMaximas }} h</strong>
+      <span>Tope semanal · {{ datos.dedicacion | etiqueta: 'dedicaciones' }}</span>
+    </div>
+    <div class="estadistica destacada">
+      <strong>{{ datos.horasDisponibles }} h</strong>
+      <span>Horas disponibles declaradas</span>
+    </div>
+  </div>
+  <app-editor-franjas [(franjas)]="franjas" />
+  <div class="fila-acciones">
+    <button type="button" class="boton boton-primario" [disabled]="guardando()" (click)="guardar()">
+      Guardar disponibilidad
+    </button>
+  </div>
+} @else {
+  <div class="cargando">Cargando disponibilidad…</div>
+}

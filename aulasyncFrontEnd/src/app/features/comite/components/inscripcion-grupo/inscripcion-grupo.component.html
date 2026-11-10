@@ -1,0 +1,36 @@
+@if (inscritos(); as datos) {
+  <div class="estadisticas">
+    <div class="estadistica destacada"><strong>{{ datos.estudiantes.length }}</strong><span>Inscritos</span></div>
+    <div class="estadistica"><strong>{{ datos.cuposDisponibles }}</strong><span>Cupos (máx. {{ datos.maximoInscritos }})</span></div>
+    <div class="estadistica"><strong>{{ datos.faltantesParaAbrir }}</strong><span>Faltan para abrir (mín. {{ datos.minimoInscritos }})</span></div>
+  </div>
+
+  <form class="buscador" (ngSubmit)="buscar()">
+    <input name="prefijo" [(ngModel)]="prefijo" placeholder="Buscar estudiante por código o nombre" />
+    <button type="submit" class="boton boton-oscuro"><app-icono nombre="buscar" [tamano]="16" /></button>
+  </form>
+  @if (resultados().length > 0) {
+    <ul class="lista resultados">
+      @for (estudiante of resultados(); track estudiante.id) {
+        <li>
+          <div><strong>{{ estudiante.nombre }}</strong><span class="mono texto-suave">{{ estudiante.codigo }}</span></div>
+          <button type="button" class="boton boton-fantasma" (click)="agregar(estudiante)"><app-icono nombre="mas" [tamano]="14" /> Inscribir</button>
+        </li>
+      }
+    </ul>
+  }
+
+  <h3>Estudiantes del grupo</h3>
+  <ul class="lista">
+    @for (estudiante of datos.estudiantes; track estudiante.id) {
+      <li>
+        <div><strong>{{ estudiante.nombre }}</strong><span class="mono texto-suave">{{ estudiante.codigo }}</span></div>
+        <button type="button" class="boton-icono peligro" (click)="quitar(estudiante)" aria-label="Quitar"><app-icono nombre="borrar" [tamano]="16" /></button>
+      </li>
+    } @empty {
+      <li class="texto-suave">Nadie inscrito todavía.</li>
+    }
+  </ul>
+} @else {
+  <div class="cargando">Cargando inscritos…</div>
+}

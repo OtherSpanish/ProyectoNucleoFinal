@@ -1,0 +1,144 @@
+<app-encabezado-pagina titulo="Aulas" descripcion="Salones de cada sede con su tipo y capacidad. El motor solo usa las disponibles.">
+  <button type="button" class="boton boton-primario" (click)="nueva()">
+    <app-icono nombre="mas" [tamano]="16" /> Nueva aula
+  </button>
+</app-encabezado-pagina>
+
+<div class="barra-filtros">
+  <label class="campo">
+    <span>Sede</span>
+    <select [(ngModel)]="filtro.sedeId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todas</option>
+      @for (sede of sedes(); track sede.id) {
+        <option [ngValue]="sede.id">{{ sede.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Tipo</span>
+    <select [(ngModel)]="filtro.tipo" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (tipo of tipos(); track tipo.valor) {
+        <option [ngValue]="tipo.valor">{{ tipo.etiqueta }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Capacidad mínima</span>
+    <input type="number" [(ngModel)]="filtro.capacidadMinima" (change)="cargar()" />
+  </label>
+  <label class="casilla">
+    <input type="checkbox" [(ngModel)]="filtro.soloDisponibles" (ngModelChange)="cargar()" />
+    Solo disponibles
+  </label>
+</div>
+
+@if (cargando()) {
+  <div class="cargando">Cargando aulas…</div>
+} @else if (aulas().length === 0) {
+  <app-estado-vacio mensaje="No hay aulas con esos filtros." icono="aula" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Aula</th><th>Sede</th><th>Tipo</th><th>Capacidad</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (aula of aulas(); track aula.id) {
+          <tr class="clicable" (click)="verDetalle(aula)">
+            <td><strong>{{ aula.nombre }}</strong></td>
+            <td>{{ aula.sedeNombre }}</td>
+            <td>{{ aula.tipo | etiqueta: 'tiposAula' }}</td>
+            <td class="mono">{{ aula.capacidad }}</td>
+            <td>
+              @if (aula.disponible) {
+                <span class="insignia insignia-exito">Disponible</span>
+              } @else {
+                <span class="insignia insignia-peligro">No disponible</span>
+              }
+            </td>
+            <td class="acciones" (click)="$event.stopPropagation()">
+              <button type="button" class="boton-icono" (click)="editar(aula)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(aula)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nueva aula' : 'Editar aula'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" placeholder="Ej. B-204" /></label>
+    <label class="campo">
+      <span>Sede</span>
+      <select name="sedeId" [(ngModel)]="formulario.sedeId">
+        <option [ngValue]="null" disabled>Selecciona una sede</option>
+        @for (sede of sedes(); track sede.id) {
+          <option [ngValue]="sede.id">{{ sede.nombre }}</option>
+        }
+      </select>
+    </label>
+    <div class="dos-columnas">
+      <label class="campo">
+        <span>Tipo</span>
+        <select name="tipo" [(ngModel)]="formulario.tipo">
+          <option [ngValue]="null" disabled>Tipo</option>
+          @for (tipo of tipos(); track tipo.valor) {
+            <option [ngValue]="tipo.valor">{{ tipo.etiqueta }}</option>
+          }
+        </select>
+      </label>
+      <label class="campo"><span>Capacidad</span><input type="number" name="capacidad" [(ngModel)]="formulario.capacidad" /></label>
+    </div>
+    <label class="casilla"><input type="checkbox" name="disponible" [(ngModel)]="formulario.disponible" /> Disponible para programar clases</label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="'Aula ' + (detalle()?.nombre ?? '')"
+  [subtitulo]="detalle()?.sedeNombre ?? ''"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as aula) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ aula.nombre }}</dd>
+      <dt>Sede</dt><dd>{{ aula.sedeNombre }}</dd>
+      <dt>Tipo</dt><dd>{{ aula.tipo | etiqueta: 'tiposAula' }}</dd>
+      <dt>Capacidad</dt><dd>{{ aula.capacidad }} estudiantes</dd>
+      <dt>Estado</dt><dd>{{ aula.disponible ? 'Disponible para programar' : 'No disponible' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Clases programadas en esta aula</h3>
+    @if (sesionesDetalle(); as sesiones) {
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Día</th><th>Hora</th><th>Curso</th><th>Docente</th></tr></thead>
+          <tbody>
+            @for (sesion of sesiones; track sesion.id) {
+              <tr>
+                <td>{{ sesion.diaNombre }}</td>
+                <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
+                <td><span class="mono">{{ sesion.cursoCodigo }}</span> G{{ sesion.numeroGrupo }}</td>
+                <td>{{ sesion.docenteNombre }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="texto-suave">No tiene clases en el horario guardado.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando ocupación…</div>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(aula); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

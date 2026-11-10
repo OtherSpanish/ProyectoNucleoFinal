@@ -1,0 +1,89 @@
+<app-encabezado-pagina titulo="Usuarios" descripcion="Cuentas de acceso: administradores, comité táctico y docentes.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo usuario
+  </button>
+</app-encabezado-pagina>
+
+<div class="barra-filtros">
+  <label class="campo">
+    <span>Rol</span>
+    <select [(ngModel)]="filtroRol" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (rol of roles(); track rol.valor) {
+        <option [ngValue]="rol.valor">{{ rol.etiqueta }}</option>
+      }
+    </select>
+  </label>
+</div>
+
+@if (cargando()) {
+  <div class="cargando">Cargando usuarios…</div>
+} @else if (usuarios().length === 0) {
+  <app-estado-vacio mensaje="No hay usuarios con ese filtro." icono="usuarios" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (usuario of usuarios(); track usuario.id) {
+          <tr class="clicable" (click)="verDetalle(usuario)">
+            <td><strong>{{ usuario.nombre }}</strong></td>
+            <td class="mono">{{ usuario.correo }}</td>
+            <td><span class="insignia" [attr.data-rol]="usuario.rol">{{ usuario.rol | etiqueta: 'roles' }}</span></td>
+            <td class="acciones" (click)="$event.stopPropagation()">
+              <button type="button" class="boton-icono" (click)="editar(usuario)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(usuario)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo usuario' : 'Editar usuario'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo"><span>Correo</span><input type="email" name="correo" [(ngModel)]="formulario.correo" /></label>
+    <label class="campo">
+      <span>Contraseña</span>
+      <input type="password" name="password" [(ngModel)]="formulario.password" autocomplete="new-password"
+        [placeholder]="formulario.id === null ? '' : 'Déjala vacía para no cambiarla'" />
+    </label>
+    <label class="campo">
+      <span>Rol</span>
+      <select name="rol" [(ngModel)]="formulario.rol">
+        <option [ngValue]="null" disabled>Selecciona un rol</option>
+        @for (rol of roles(); track rol.valor) {
+          <option [ngValue]="rol.valor">{{ rol.etiqueta }}</option>
+        }
+      </select>
+    </label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  subtitulo="Usuario"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as usuario) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ usuario.nombre }}</dd>
+      <dt>Correo</dt><dd class="mono">{{ usuario.correo }}</dd>
+      <dt>Rol</dt><dd>{{ usuario.rol | etiqueta: 'roles' }}</dd>
+      <dt>Identificador</dt><dd class="mono">{{ usuario.id }}</dd>
+    </dl>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(usuario); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

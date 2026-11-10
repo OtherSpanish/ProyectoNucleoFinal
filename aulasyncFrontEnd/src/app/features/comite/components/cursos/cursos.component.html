@@ -1,0 +1,169 @@
+<app-encabezado-pagina titulo="Cursos" descripcion="Asignaturas del plan de estudios con su intensidad horaria y el tipo de aula que exigen.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo curso
+  </button>
+</app-encabezado-pagina>
+
+<form class="barra-filtros" (ngSubmit)="cargar()">
+  <label class="campo">
+    <span>Semestre</span>
+    <select name="semestre" [(ngModel)]="filtroSemestreId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (semestre of semestres(); track semestre.id) {
+        <option [ngValue]="semestre.id">{{ semestre.numero }} · {{ semestre.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Especialidad</span>
+    <select name="especialidad" [(ngModel)]="filtroEspecialidadId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todas</option>
+      @for (especialidad of especialidades(); track especialidad.id) {
+        <option [ngValue]="especialidad.id">{{ especialidad.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Código o nombre</span>
+    <input name="prefijo" [(ngModel)]="prefijo" placeholder="Ej. MAT" />
+  </label>
+  <button type="submit" class="boton boton-oscuro"><app-icono nombre="buscar" [tamano]="16" /> Buscar</button>
+</form>
+
+@if (cargando()) {
+  <div class="cargando">Cargando cursos…</div>
+} @else if (cursos().length === 0) {
+  <app-estado-vacio mensaje="No hay cursos con esos filtros." icono="libro" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Código</th><th>Curso</th><th>Semestre</th><th>Especialidad</th><th>Intensidad</th><th>Aula</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (curso of cursos(); track curso.id) {
+          <tr class="clicable" (click)="verDetalle(curso)">
+            <td class="mono">{{ curso.codigo }}</td>
+            <td>
+              <strong>{{ curso.nombre }}</strong>
+              @if (curso.nucleoComun) {
+                <span class="insignia insignia-alerta nucleo">Núcleo común</span>
+              }
+            </td>
+            <td class="mono">{{ curso.semestreNumero }}</td>
+            <td>{{ curso.especialidadNombre }}</td>
+            <td>
+              {{ curso.intensidad | etiqueta: 'intensidades' }}
+              <div class="texto-suave">{{ curso.horasSemanales }} h/semana</div>
+            </td>
+            <td>{{ curso.tipoAula | etiqueta: 'tiposAula' }}</td>
+            <td class="acciones" (click)="$event.stopPropagation()">
+              <button type="button" class="boton-icono" (click)="editar(curso)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(curso)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo curso' : 'Editar curso'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <div class="dos-columnas">
+      <label class="campo"><span>Código</span><input name="codigo" [(ngModel)]="formulario.codigo" placeholder="MAT101" /></label>
+      <label class="campo">
+        <span>Semestre</span>
+        <select name="semestreId" [(ngModel)]="formulario.semestreId">
+          <option [ngValue]="null" disabled>—</option>
+          @for (semestre of semestres(); track semestre.id) {
+            <option [ngValue]="semestre.id">{{ semestre.numero }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo">
+      <span>Especialidad requerida</span>
+      <select name="especialidadId" [(ngModel)]="formulario.especialidadId">
+        <option [ngValue]="null" disabled>Selecciona una especialidad</option>
+        @for (especialidad of especialidades(); track especialidad.id) {
+          <option [ngValue]="especialidad.id">{{ especialidad.nombre }}</option>
+        }
+      </select>
+    </label>
+    <div class="dos-columnas">
+      <label class="campo">
+        <span>Intensidad</span>
+        <select name="intensidad" [(ngModel)]="formulario.intensidad">
+          <option [ngValue]="null" disabled>—</option>
+          @for (intensidad of intensidades(); track intensidad.valor) {
+            <option [ngValue]="intensidad.valor">{{ intensidad.etiqueta }}</option>
+          }
+        </select>
+      </label>
+      <label class="campo">
+        <span>Tipo de aula</span>
+        <select name="tipoAula" [(ngModel)]="formulario.tipoAula">
+          <option [ngValue]="null" disabled>—</option>
+          @for (tipo of tiposAula(); track tipo.valor) {
+            <option [ngValue]="tipo.valor">{{ tipo.etiqueta }}</option>
+          }
+        </select>
+      </label>
+    </div>
+    <label class="casilla">
+      <input type="checkbox" name="nucleoComun" [(ngModel)]="formulario.nucleoComun" />
+      Materia de núcleo común
+    </label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  [subtitulo]="'Curso · ' + (detalle()?.codigo ?? '')"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as curso) {
+    <dl class="datos-detalle">
+      <dt>Código</dt><dd class="mono">{{ curso.codigo }}</dd>
+      <dt>Nombre</dt><dd>{{ curso.nombre }}</dd>
+      <dt>Semestre</dt><dd>{{ curso.semestreNumero }}</dd>
+      <dt>Especialidad</dt><dd>{{ curso.especialidadNombre }}</dd>
+      <dt>Intensidad</dt><dd>{{ curso.intensidad | etiqueta: 'intensidades' }} · {{ curso.horasSemanales }} h por semana</dd>
+      <dt>Tipo de aula</dt><dd>{{ curso.tipoAula | etiqueta: 'tiposAula' }}</dd>
+      <dt>Núcleo común</dt><dd>{{ curso.nucleoComun ? 'Sí' : 'No' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Grupos</h3>
+    @if (gruposDetalle(); as grupos) {
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Grupo</th><th>Docente</th><th>Inscritos</th><th>Estado</th></tr></thead>
+          <tbody>
+            @for (grupo of grupos; track grupo.id) {
+              <tr>
+                <td class="mono">G{{ grupo.numero }}</td>
+                <td>{{ grupo.docenteNombre }}</td>
+                <td class="mono">{{ grupo.cantidadEstudiantes }}</td>
+                <td>{{ grupo.abierto ? 'Abierto' : 'Sin abrir' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="texto-suave">Sin grupos.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando grupos…</div>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(curso); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

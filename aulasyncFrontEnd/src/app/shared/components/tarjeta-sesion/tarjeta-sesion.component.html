@@ -1,0 +1,17 @@
+<article class="tarjeta-sesion" [class.compacta]="compacta()" [title]="sesion().cursoNombre + ' · ' + sesion().docenteNombre">
+  <div class="cabeza">
+    <span class="codigo">{{ sesion().cursoCodigo }} · G{{ sesion().numeroGrupo }}</span>
+    <span class="semestre">S{{ sesion().semestre }}</span>
+  </div>
+  <p class="nombre">{{ sesion().cursoNombre }}</p>
+  @if (sesion().ubicada) {
+    <p class="detalle hora">{{ sesion().horaInicio | hora }}–{{ sesion().horaFin | hora }}</p>
+    <p class="detalle">{{ sesion().aulaNombre }} · {{ sesion().sedeNombre }}</p>
+  } @else {
+    <p class="detalle">Sesión {{ sesion().numeroSesion }} · {{ sesion().duracionHoras }} h</p>
+  }
+  <p class="detalle docente">{{ sesion().docenteNombre }}</p>
+  @if (mostrarCausa() && sesion().detalleCausa) {
+    <p class="causa">{{ sesion().detalleCausa }}</p>
+  }
+</article>

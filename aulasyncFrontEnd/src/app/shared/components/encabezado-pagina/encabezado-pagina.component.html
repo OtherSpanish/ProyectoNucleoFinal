@@ -1,0 +1,11 @@
+<header class="encabezado">
+  <div>
+    <h1>{{ titulo() }}</h1>
+    @if (descripcion()) {
+      <p>{{ descripcion() }}</p>
+    }
+  </div>
+  <div class="acciones">
+    <ng-content />
+  </div>
+</header>

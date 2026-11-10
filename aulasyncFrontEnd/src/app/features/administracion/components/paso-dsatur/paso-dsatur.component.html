@@ -1,0 +1,22 @@
+@if (paso(); as datos) {
+  @let nodo = traza().nodos[datos.nodo];
+  <button type="button" class="sesion" (click)="verNodo.emit(nodo.indice)" title="Ver este nodo">
+    <strong>{{ nodo.cursoCodigo }} · G{{ nodo.numeroGrupo }} · sesión {{ nodo.numeroSesion }}</strong>
+    <span>{{ nodo.cursoNombre }} · {{ nodo.docenteNombre }}</span>
+  </button>
+  <div class="metricas">
+    <div><strong>{{ datos.saturacion }}<small>/{{ datos.franjasCandidatas }}</small></strong><span>saturación</span></div>
+    <div><strong>{{ datos.grado }}</strong><span>grado</span></div>
+    <div [class.cero]="datos.franjasViables === 0"><strong>{{ datos.franjasViables }}</strong><span>viables</span></div>
+  </div>
+  <app-barras-bloqueo [paso]="datos" />
+  @if (datos.ubicada) {
+    <div class="decision exito">
+      → {{ datos.diaNombre }} {{ datos.horaInicio | hora }} · {{ datos.aulaNombre }} ({{ datos.sedeNombre }}) · carga del día {{ datos.cargaDia }}
+    </div>
+  } @else {
+    <div class="decision peligro">→ Sin franja viable. {{ datos.causaDescripcion }}</div>
+  }
+} @else {
+  <p class="inicio">Todas las sesiones están pendientes. Avanza para ver a DSatur elegir y ubicar una por una.</p>
+}

@@ -1,0 +1,54 @@
+.bandeja {
+  position: sticky;
+  top: 16px;
+  background: var(--superficie);
+  border: 1.5px dashed var(--borde);
+  border-radius: var(--radio);
+  padding: 14px;
+  max-height: calc(100vh - 230px);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.12s, background 0.12s;
+}
+.bandeja.encima {
+  border-color: var(--naranja-500);
+  background: var(--naranja-100);
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--olivo-900);
+}
+h3 {
+  margin: 0;
+  flex: 1;
+}
+.conteo {
+  font-family: var(--fuente-mono);
+  font-size: 12px;
+  background: var(--naranja-100);
+  color: var(--naranja-700);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.ayuda {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin: 6px 0 12px;
+}
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.lista app-tarjeta-sesion {
+  cursor: grab;
+}
+.vacio {
+  text-align: center;
+  color: var(--texto-suave);
+  padding: 24px 8px;
+  margin: 0;
+}

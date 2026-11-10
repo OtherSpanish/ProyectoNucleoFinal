@@ -1,0 +1,64 @@
+.segmentos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.segmentos button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  font: inherit;
+  font-weight: 600;
+  color: var(--olivo-700);
+  cursor: pointer;
+}
+.segmentos button:hover {
+  border-color: var(--olivo-700);
+}
+.segmentos button.activo {
+  background: var(--olivo-900);
+  border-color: var(--olivo-900);
+  color: #fff;
+}
+.semestres {
+  flex: 2 !important;
+}
+.prefijo {
+  max-width: 340px;
+}
+.en-linea {
+  display: flex;
+  gap: 6px;
+}
+.resumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.descripcion {
+  font-family: var(--fuente-titulo);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--olivo-900);
+  margin-right: 6px;
+}
+.tablero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 16px;
+  align-items: start;
+}
+.cambios {
+  padding-left: 18px;
+  line-height: 1.6;
+}
+@media (max-width: 1200px) {
+  .tablero {
+    grid-template-columns: 1fr;
+  }
+}

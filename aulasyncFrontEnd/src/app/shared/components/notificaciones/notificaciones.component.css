@@ -1,0 +1,37 @@
+.pila {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, calc(100vw - 32px));
+}
+.toast {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--olivo-900);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(30, 36, 18, 0.25);
+  animation: entrar 0.2s ease-out;
+  line-height: 1.4;
+}
+.toast[data-tipo='exito'] app-icono { color: #a8d672; }
+.toast[data-tipo='error'] { background: #7a2416; }
+.toast[data-tipo='info'] app-icono { color: var(--naranja-300); }
+span { flex: 1; }
+button {
+  background: none;
+  border: 0;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px;
+}
+@keyframes entrar {
+  from { transform: translateY(8px); opacity: 0; }
+}

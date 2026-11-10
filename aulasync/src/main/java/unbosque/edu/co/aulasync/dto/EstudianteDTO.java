@@ -11,6 +11,8 @@ public class EstudianteDTO {
 	private String codigo;
 	private String nombre;
 	private String correo;
+	private Long semestreId;
+	private Integer semestreNumero;
 
 	/**
 	 * Constructor vacío requerido para la deserialización JSON.
@@ -22,16 +24,21 @@ public class EstudianteDTO {
 	/**
 	 * Crea el DTO con todos sus datos.
 	 *
-	 * @param id     identificador del estudiante.
-	 * @param codigo código institucional.
-	 * @param nombre nombre completo.
-	 * @param correo correo opcional.
+	 * @param id             identificador del estudiante.
+	 * @param codigo         código institucional.
+	 * @param nombre         nombre completo.
+	 * @param correo         correo opcional.
+	 * @param semestreId     id del semestre que cursa.
+	 * @param semestreNumero número del semestre que cursa (informativo).
 	 */
-	public EstudianteDTO(Long id, String codigo, String nombre, String correo) {
+	public EstudianteDTO(Long id, String codigo, String nombre, String correo, Long semestreId,
+			Integer semestreNumero) {
 		this.id = id;
 		this.codigo = codigo;
 		this.nombre = nombre;
 		this.correo = correo;
+		this.semestreId = semestreId;
+		this.semestreNumero = semestreNumero;
 	}
 
 	/**
@@ -88,5 +95,33 @@ public class EstudianteDTO {
 	 */
 	public void setCorreo(String correo) {
 		this.correo = correo;
+	}
+
+	/**
+	 * @return id del semestre que cursa.
+	 */
+	public Long getSemestreId() {
+		return semestreId;
+	}
+
+	/**
+	 * @param semestreId id del semestre que cursa.
+	 */
+	public void setSemestreId(Long semestreId) {
+		this.semestreId = semestreId;
+	}
+
+	/**
+	 * @return número del semestre que cursa (solo de salida).
+	 */
+	public Integer getSemestreNumero() {
+		return semestreNumero;
+	}
+
+	/**
+	 * @param semestreNumero número del semestre que cursa.
+	 */
+	public void setSemestreNumero(Integer semestreNumero) {
+		this.semestreNumero = semestreNumero;
 	}
 }

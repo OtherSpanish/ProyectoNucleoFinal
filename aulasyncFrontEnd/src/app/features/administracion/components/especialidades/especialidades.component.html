@@ -1,0 +1,74 @@
+<app-encabezado-pagina titulo="Especialidades" descripcion="Áreas de conocimiento que habilitan a un docente para dictar un curso.">
+  <button type="button" class="boton boton-primario" (click)="nueva()">
+    <app-icono nombre="mas" [tamano]="16" /> Nueva especialidad
+  </button>
+</app-encabezado-pagina>
+
+@if (cargando()) {
+  <div class="cargando">Cargando especialidades…</div>
+} @else if (especialidades().length === 0) {
+  <app-estado-vacio mensaje="Aún no hay especialidades registradas." icono="etiqueta" />
+} @else {
+  <div class="cuadricula">
+    @for (especialidad of especialidades(); track especialidad.id) {
+      <article class="tarjeta clicable" (click)="verDetalle(especialidad)">
+        <h3>{{ especialidad.nombre }}</h3>
+        <p class="texto-suave">{{ especialidad.descripcion || 'Sin descripción.' }}</p>
+        <div class="fila-acciones" (click)="$event.stopPropagation()">
+          <button type="button" class="boton-icono" (click)="editar(especialidad)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+          <button type="button" class="boton-icono peligro" (click)="eliminar(especialidad)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nueva especialidad' : 'Editar especialidad'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo"><span>Descripción</span><textarea name="descripcion" rows="4" [(ngModel)]="formulario.descripcion"></textarea></label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  subtitulo="Especialidad"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as especialidad) {
+    <dl class="datos-detalle">
+      <dt>Nombre</dt><dd>{{ especialidad.nombre }}</dd>
+      <dt>Descripción</dt><dd>{{ especialidad.descripcion || 'Sin descripción.' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Docentes con esta especialidad</h3>
+    @if (docentesDetalle(); as docentes) {
+      <div class="lista-insignias">
+        @for (docente of docentes; track docente.id) {
+          <span class="insignia">{{ docente.usuario.nombre }}</span>
+        } @empty {
+          <span class="texto-suave">Ningún docente la tiene.</span>
+        }
+      </div>
+    } @else {
+      <div class="cargando">Cargando…</div>
+    }
+    <h3 class="titulo-seccion">Cursos que la exigen</h3>
+    @if (cursosDetalle(); as cursos) {
+      <div class="lista-insignias">
+        @for (curso of cursos; track curso.id) {
+          <span class="insignia insignia-alerta">{{ curso.codigo }} · {{ curso.nombre }}</span>
+        } @empty {
+          <span class="texto-suave">Ningún curso la exige.</span>
+        }
+      </div>
+    } @else {
+      <div class="cargando">Cargando…</div>
+    }
+  }
+</app-ventana-detalle>

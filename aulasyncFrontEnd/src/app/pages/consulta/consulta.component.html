@@ -1,0 +1,58 @@
+<h2>Consultar horario</h2>
+<app-alerta [error]="error"></app-alerta>
+
+<div class="barra">
+  <label class="inline">Semestre
+    <select name="sem" [(ngModel)]="semestre" (change)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let s of semestres" [ngValue]="s">{{ s }}</option>
+    </select>
+  </label>
+  <label class="inline">Curso
+    <select name="cur" [(ngModel)]="cursoId" (change)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let c of cursos" [ngValue]="c.id">{{ c.codigo }} – {{ c.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Docente
+    <select name="doc" [(ngModel)]="docenteId" (change)="consultar()">
+      <option [ngValue]="null">Todos</option>
+      <option *ngFor="let d of docentes" [ngValue]="d.id">{{ d.usuario.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Sede
+    <select name="sed" [(ngModel)]="sedeId" (change)="consultar()">
+      <option [ngValue]="null">Todas</option>
+      <option *ngFor="let s of sedes" [ngValue]="s.id">{{ s.nombre }}</option>
+    </select>
+  </label>
+  <label class="inline">Aula
+    <select name="aul" [(ngModel)]="aulaId" (change)="consultar()">
+      <option [ngValue]="null">Todas</option>
+      <option *ngFor="let a of aulas" [ngValue]="a.id">{{ a.nombre }} ({{ a.sedeNombre }})</option>
+    </select>
+  </label>
+  <label class="check"><input type="checkbox" name="ub" [(ngModel)]="soloUbicadas" (change)="consultar()"> Solo ubicadas</label>
+  <button type="button" (click)="limpiarFiltros()">Limpiar</button>
+  <button type="button" class="primario" (click)="exportar()" [disabled]="sesiones.length === 0">Exportar CSV</button>
+</div>
+
+<p class="resumen">{{ sesiones.length }} sesiones.</p>
+<p class="vacio" *ngIf="sesiones.length === 0">No hay sesiones con esos filtros.</p>
+<table *ngIf="sesiones.length > 0">
+  <thead><tr><th>Sem.</th><th>Curso</th><th>Grupo</th><th>Sesión</th><th>Día</th><th>Hora</th><th>Aula</th><th>Sede</th><th>Docente</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr *ngFor="let s of sesiones">
+      <td>{{ s.semestre }}</td>
+      <td>{{ s.cursoCodigo }} – {{ s.cursoNombre }}</td>
+      <td>{{ s.numeroGrupo }}</td>
+      <td>{{ s.numeroSesion }}</td>
+      <td>{{ s.ubicada ? dia(s.dia) : '—' }}</td>
+      <td>{{ s.ubicada ? hora(s.horaInicio) + '–' + hora(s.horaFin) : '—' }}</td>
+      <td>{{ s.aulaNombre }}</td>
+      <td>{{ s.sedeNombre }}</td>
+      <td>{{ s.docenteNombre }}</td>
+      <td><span class="chip" [class.ok]="s.ubicada" [class.pendiente]="!s.ubicada">{{ s.ubicada ? 'Ubicada' : 'Sin ubicar' }}</span></td>
+    </tr>
+  </tbody>
+</table>

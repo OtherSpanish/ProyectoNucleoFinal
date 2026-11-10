@@ -1,0 +1,91 @@
+<app-encabezado-pagina titulo="Estudiantes" descripcion="Estudiantes que el comité inscribe en los grupos de cada curso.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo estudiante
+  </button>
+</app-encabezado-pagina>
+
+<form class="barra-filtros" (ngSubmit)="cargar()">
+  <label class="campo">
+    <span>Buscar por código o nombre</span>
+    <input name="prefijo" [(ngModel)]="prefijo" placeholder="Ej. 2024 o Laura" />
+  </label>
+  <button type="submit" class="boton boton-oscuro"><app-icono nombre="buscar" [tamano]="16" /> Buscar</button>
+  @if (prefijo) {
+    <button type="button" class="boton boton-fantasma" (click)="limpiarBusqueda()">Limpiar</button>
+  }
+</form>
+
+@if (cargando()) {
+  <div class="cargando">Cargando estudiantes…</div>
+} @else if (estudiantes().length === 0) {
+  <app-estado-vacio mensaje="No se encontraron estudiantes." icono="estudiante" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Código</th><th>Nombre</th><th>Semestre</th><th>Correo</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (estudiante of estudiantes(); track estudiante.id) {
+          <tr class="clicable" (click)="verDetalle(estudiante)">
+            <td class="mono">{{ estudiante.codigo }}</td>
+            <td><strong>{{ estudiante.nombre }}</strong></td>
+            <td>
+              @if (estudiante.semestreNumero) {
+                <span class="insignia">Semestre {{ estudiante.semestreNumero }}</span>
+              } @else {
+                <span class="insignia insignia-alerta">Sin asignar</span>
+              }
+            </td>
+            <td class="texto-suave">{{ estudiante.correo }}</td>
+            <td class="acciones" (click)="$event.stopPropagation()">
+              <button type="button" class="boton-icono" (click)="editar(estudiante)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(estudiante)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo estudiante' : 'Editar estudiante'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo"><span>Código</span><input name="codigo" [(ngModel)]="formulario.codigo" /></label>
+    <label class="campo"><span>Nombre</span><input name="nombre" [(ngModel)]="formulario.nombre" /></label>
+    <label class="campo">
+      <span>Semestre que cursa</span>
+      <select name="semestreId" [(ngModel)]="formulario.semestreId">
+        <option [ngValue]="null" disabled>Selecciona el semestre</option>
+        @for (semestre of semestres(); track semestre.id) {
+          <option [ngValue]="semestre.id">{{ semestre.numero }} · {{ semestre.nombre }}</option>
+        }
+      </select>
+    </label>
+    <label class="campo"><span>Correo</span><input type="email" name="correo" [(ngModel)]="formulario.correo" /></label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="detalle()?.nombre ?? ''"
+  [subtitulo]="'Estudiante · ' + (detalle()?.codigo ?? '')"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as estudiante) {
+    <dl class="datos-detalle">
+      <dt>Código</dt><dd class="mono">{{ estudiante.codigo }}</dd>
+      <dt>Nombre</dt><dd>{{ estudiante.nombre }}</dd>
+      <dt>Semestre</dt><dd>{{ estudiante.semestreNumero ?? 'Sin asignar' }}</dd>
+      <dt>Correo</dt><dd class="mono">{{ estudiante.correo || '—' }}</dd>
+    </dl>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="editar(estudiante); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

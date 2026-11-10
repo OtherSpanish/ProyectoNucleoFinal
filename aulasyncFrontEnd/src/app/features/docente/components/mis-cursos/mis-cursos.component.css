@@ -1,0 +1,22 @@
+.cuadricula {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.curso {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 4px solid var(--naranja-500);
+}
+.curso h3 {
+  margin: 0;
+}
+.codigo {
+  color: var(--naranja-700);
+  font-weight: 500;
+}
+.curso .boton {
+  align-self: flex-start;
+  margin-top: auto;
+}

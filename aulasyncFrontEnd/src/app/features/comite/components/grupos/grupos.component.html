@@ -1,0 +1,158 @@
+<app-encabezado-pagina titulo="Grupos" descripcion="Cada grupo es un curso con su docente. Se abre cuando alcanza el mínimo de inscritos.">
+  <button type="button" class="boton boton-primario" (click)="nuevo()">
+    <app-icono nombre="mas" [tamano]="16" /> Nuevo grupo
+  </button>
+</app-encabezado-pagina>
+
+<div class="barra-filtros">
+  <label class="campo">
+    <span>Semestre</span>
+    <select [(ngModel)]="filtro.semestreId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (semestre of semestres(); track semestre.id) {
+        <option [ngValue]="semestre.id">{{ semestre.numero }} · {{ semestre.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Curso</span>
+    <select [(ngModel)]="filtro.cursoId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (curso of cursos(); track curso.id) {
+        <option [ngValue]="curso.id">{{ curso.codigo }} · {{ curso.nombre }}</option>
+      }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Docente</span>
+    <select [(ngModel)]="filtro.docenteId" (ngModelChange)="cargar()">
+      <option [ngValue]="null">Todos</option>
+      @for (docente of docentes(); track docente.id) {
+        <option [ngValue]="docente.id">{{ docente.usuario.nombre }}</option>
+      }
+    </select>
+  </label>
+</div>
+
+@if (cargando()) {
+  <div class="cargando">Cargando grupos…</div>
+} @else if (grupos().length === 0) {
+  <app-estado-vacio mensaje="No hay grupos con esos filtros." icono="usuarios" />
+} @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr><th>Curso</th><th>Grupo</th><th>Semestre</th><th>Docente</th><th>Inscritos</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (grupo of grupos(); track grupo.id) {
+          <tr class="clicable" (click)="verDetalle(grupo)">
+            <td><span class="mono">{{ grupo.cursoCodigo }}</span> <strong>{{ grupo.cursoNombre }}</strong></td>
+            <td class="mono">G{{ grupo.numero }}</td>
+            <td class="mono">{{ grupo.semestreNumero }}</td>
+            <td>{{ grupo.docenteNombre }}</td>
+            <td class="mono">{{ grupo.cantidadEstudiantes }}</td>
+            <td>
+              @if (grupo.abierto) {
+                <span class="insignia insignia-exito">Abierto</span>
+              } @else {
+                <span class="insignia insignia-alerta">Sin abrir</span>
+              }
+            </td>
+            <td class="acciones" (click)="$event.stopPropagation()">
+              <button type="button" class="boton boton-fantasma" (click)="grupoInscripcion.set(grupo)">
+                <app-icono nombre="estudiante" [tamano]="16" /> Inscritos
+              </button>
+              <button type="button" class="boton-icono" (click)="editar(grupo)" aria-label="Editar"><app-icono nombre="editar" [tamano]="16" /></button>
+              <button type="button" class="boton-icono peligro" (click)="eliminar(grupo)" aria-label="Eliminar"><app-icono nombre="borrar" [tamano]="16" /></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<app-panel-lateral [titulo]="formulario.id === null ? 'Nuevo grupo' : 'Editar grupo'" [abierto]="panelAbierto()" (cerrar)="panelAbierto.set(false)">
+  <form class="formulario-grilla" (ngSubmit)="guardar()">
+    <label class="campo">
+      <span>Curso</span>
+      <select name="cursoId" [(ngModel)]="formulario.cursoId">
+        <option [ngValue]="null" disabled>Selecciona un curso</option>
+        @for (curso of cursos(); track curso.id) {
+          <option [ngValue]="curso.id">{{ curso.codigo }} · {{ curso.nombre }} (S{{ curso.semestreNumero }})</option>
+        }
+      </select>
+    </label>
+    <label class="campo"><span>Número de grupo</span><input type="number" name="numero" [(ngModel)]="formulario.numero" /></label>
+    <label class="campo">
+      <span>Docente</span>
+      <select name="docenteId" [(ngModel)]="formulario.docenteId">
+        <option [ngValue]="null" disabled>Selecciona un docente</option>
+        @for (docente of docentes(); track docente.id) {
+          <option [ngValue]="docente.id">{{ docente.usuario.nombre }} · {{ docente.dedicacion | etiqueta: 'dedicaciones' }}</option>
+        }
+      </select>
+    </label>
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="panelAbierto.set(false)">Cancelar</button>
+      <button type="submit" class="boton boton-primario" [disabled]="guardando()">Guardar</button>
+    </div>
+  </form>
+</app-panel-lateral>
+
+<app-panel-lateral
+  [titulo]="'Inscritos · ' + (grupoInscripcion()?.cursoCodigo ?? '') + ' G' + (grupoInscripcion()?.numero ?? '')"
+  [abierto]="grupoInscripcion() !== null"
+  ancho="560px"
+  (cerrar)="grupoInscripcion.set(null); cargar()"
+>
+  @if (grupoInscripcion(); as grupo) {
+    <app-inscripcion-grupo [grupoId]="grupo.id!" />
+  }
+</app-panel-lateral>
+
+<app-ventana-detalle
+  [titulo]="(detalle()?.cursoNombre ?? '') + ' · G' + (detalle()?.numero ?? '')"
+  [subtitulo]="'Grupo · ' + (detalle()?.cursoCodigo ?? '')"
+  [abierta]="detalle() !== null"
+  [cargando]="cargandoDetalle()"
+  (cerrar)="detalle.set(null)"
+>
+  @if (detalle(); as grupo) {
+    <dl class="datos-detalle">
+      <dt>Curso</dt><dd><span class="mono">{{ grupo.cursoCodigo }}</span> {{ grupo.cursoNombre }}</dd>
+      <dt>Grupo</dt><dd>G{{ grupo.numero }} · semestre {{ grupo.semestreNumero }}</dd>
+      <dt>Docente</dt><dd>{{ grupo.docenteNombre }}</dd>
+      <dt>Inscritos</dt><dd>{{ grupo.cantidadEstudiantes }}</dd>
+      <dt>Estado</dt><dd>{{ grupo.abierto ? 'Abierto: entra al motor' : 'Sin abrir: no alcanza el mínimo de inscritos' }}</dd>
+    </dl>
+    <h3 class="titulo-seccion">Sesiones en el horario</h3>
+    @if (sesionesDetalle(); as sesiones) {
+      <div class="tabla-contenedor">
+        <table class="tabla tabla-compacta">
+          <thead><tr><th>Sesión</th><th>Día</th><th>Hora</th><th>Aula</th><th>Sede</th></tr></thead>
+          <tbody>
+            @for (sesion of sesiones; track sesion.id) {
+              <tr>
+                <td class="mono">{{ sesion.numeroSesion }}</td>
+                <td>{{ sesion.diaNombre ?? 'Sin ubicar' }}</td>
+                <td class="mono">{{ sesion.horaInicio | hora }}–{{ sesion.horaFin | hora }}</td>
+                <td>{{ sesion.aulaNombre ?? '—' }}</td>
+                <td>{{ sesion.sedeNombre ?? '—' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="texto-suave">Aún no tiene sesiones en el horario.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="cargando">Cargando sesiones…</div>
+    }
+    <div class="fila-acciones">
+      <button type="button" class="boton boton-secundario" (click)="grupoInscripcion.set(grupo); detalle.set(null)"><app-icono nombre="estudiante" [tamano]="16" /> Ver inscritos</button>
+      <button type="button" class="boton boton-secundario" (click)="editar(grupo); detalle.set(null)"><app-icono nombre="editar" [tamano]="16" /> Editar</button>
+    </div>
+  }
+</app-ventana-detalle>

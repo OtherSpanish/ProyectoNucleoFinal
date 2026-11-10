@@ -1,0 +1,58 @@
+<div class="marco" [class.colapsado]="colapsado()" [class.menu-movil]="menuMovilAbierto()">
+  <aside class="lateral">
+    <div class="marca">
+      <button type="button" class="hamburguesa" (click)="alternarMenu()" aria-label="Mostrar u ocultar el menú" title="Menú">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="texto-marca">
+        <strong>AulaSync</strong>
+        <span>Universidad El Bosque</span>
+      </div>
+    </div>
+
+    <nav aria-label="Menú principal">
+      @for (item of menu(); track item.ruta) {
+        <a [routerLink]="item.ruta" routerLinkActive="activo" [title]="item.etiqueta" (click)="cerrarMenuMovil()">
+          <app-icono [nombre]="item.icono" />
+          <span class="etiqueta">{{ item.etiqueta }}</span>
+        </a>
+      }
+    </nav>
+
+    @if (sesionService.usuario(); as usuario) {
+      <div class="usuario">
+        <div class="avatar" [title]="usuario.nombre">{{ usuario.nombre.charAt(0) }}</div>
+        <div class="datos">
+          <strong>{{ usuario.nombre }}</strong>
+          <span>{{ usuario.rol | etiqueta: 'roles' }}</span>
+        </div>
+        <button type="button" class="salir" (click)="cerrarSesion()" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <app-icono nombre="salir" />
+        </button>
+      </div>
+    }
+  </aside>
+
+  <div class="velo" (click)="cerrarMenuMovil()"></div>
+
+  <div class="area">
+    <button type="button" class="abrir-menu" (click)="alternarMenu()" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+
+    <main class="contenido">
+      @if (catalogoService.listo()) {
+        <router-outlet />
+      } @else if (errorCatalogos()) {
+        <div class="aviso aviso-peligro error-carga">
+          No se pudieron cargar los catálogos del servidor.
+          <button type="button" class="boton boton-secundario" (click)="cargarCatalogos()">Reintentar</button>
+        </div>
+      } @else {
+        <div class="cargando">Cargando AulaSync…</div>
+      }
+    </main>
+
+    <app-pie-pagina class="pie" />
+  </div>
+</div>

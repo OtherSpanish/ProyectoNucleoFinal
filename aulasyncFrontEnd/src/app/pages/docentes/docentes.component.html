@@ -1,0 +1,83 @@
+<h2>Docentes</h2>
+<p class="ayuda">
+  Dedicación (define el tope de horas semanales), especialidades que puede dictar y franjas de disponibilidad.
+  <ng-container *ngIf="!puedeEditar()">Tu rol solo permite consultar.</ng-container>
+</p>
+
+<app-alerta [error]="error" [ok]="ok"></app-alerta>
+
+<div class="barra">
+  <label class="inline">Especialidad
+    <select [(ngModel)]="filtroEspecialidad" name="filtroEsp" (change)="cargarDocentes()">
+      <option [ngValue]="null">Todas</option>
+      <option *ngFor="let e of especialidades" [ngValue]="e.id">{{ e.nombre }}</option>
+    </select>
+  </label>
+  <button type="button" class="primario" *ngIf="puedeEditar()" (click)="nuevo()">Nuevo docente</button>
+</div>
+
+<form class="card" *ngIf="mostrarForm" (ngSubmit)="guardar()">
+  <h3>{{ editandoId === null ? 'Nuevo docente' : 'Editar docente' }}</h3>
+  <div class="fila-form">
+    <label *ngIf="editandoId === null">Usuario (rol Docente sin vincular)
+      <select name="usuario" [(ngModel)]="usuarioId" required>
+        <option [ngValue]="null">— Selecciona —</option>
+        <option *ngFor="let u of usuariosLibres" [ngValue]="u.id">{{ u.nombre }} ({{ u.correo }})</option>
+      </select>
+    </label>
+    <label *ngIf="editandoId !== null">Usuario
+      <input [value]="usuarioNombre" disabled>
+    </label>
+    <label>Dedicación
+      <select name="dedicacion" [(ngModel)]="dedicacion">
+        <option *ngFor="let d of dedicaciones" [value]="d.valor">{{ d.etiqueta }}</option>
+      </select>
+    </label>
+  </div>
+  <p *ngIf="editandoId === null && usuariosLibres.length === 0" class="ayuda">
+    No hay usuarios con rol Docente sin vincular. Créalos primero en «Usuarios».
+  </p>
+  <fieldset>
+    <legend>Especialidades</legend>
+    <p class="vacio" *ngIf="especialidades.length === 0">No hay especialidades. Créalas en «Catálogos».</p>
+    <label class="check" *ngFor="let e of especialidades">
+      <input type="checkbox" [checked]="seleccion.has(e.id!)" (change)="alternar(e.id, $any($event.target).checked)">
+      {{ e.nombre }}
+    </label>
+  </fieldset>
+  <button type="submit" class="primario">Guardar</button>
+  <button type="button" (click)="cancelar()">Cancelar</button>
+</form>
+
+<p class="vacio" *ngIf="docentes.length === 0">No hay docentes registrados.</p>
+<table *ngIf="docentes.length > 0">
+  <thead><tr><th>Docente</th><th>Correo</th><th>Dedicación</th><th>Especialidades</th><th></th></tr></thead>
+  <tbody>
+    <tr *ngFor="let d of docentes" [class.fila-activa]="dispDocente?.id === d.id">
+      <td>{{ d.usuario.nombre }}</td>
+      <td>{{ d.usuario.correo }}</td>
+      <td>{{ etiquetaDedicacion(d.dedicacion) }}</td>
+      <td>{{ nombresEspecialidades(d) }}</td>
+      <td class="acciones">
+        <button type="button" (click)="verDisponibilidad(d)">Disponibilidad</button>
+        <button type="button" *ngIf="puedeEditar()" (click)="editar(d)">Editar</button>
+        <button type="button" class="peligro" *ngIf="puedeEditar()" (click)="eliminar(d)">Eliminar</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card" *ngIf="dispDocente">
+  <h3>Disponibilidad de {{ dispDocente.usuario.nombre }}</h3>
+  <p class="vacio" *ngIf="!disp">Cargando…</p>
+  <ng-container *ngIf="disp">
+    <p class="resumen">
+      Horas disponibles: <strong>{{ horasMarcadas }}</strong> ·
+      Tope semanal por dedicación: <strong>{{ disp.horasMaximas }}</strong>
+      <span class="ayuda" *ngIf="horasMarcadas < 1"> — sin disponibilidad el motor no podrá ubicar sus clases.</span>
+    </p>
+    <app-editor-franjas [franjas]="franjasEdit" [editable]="puedeEditar()" (cambio)="alCambiarFranjas($event)"></app-editor-franjas>
+    <button type="button" class="primario" *ngIf="puedeEditar()" (click)="guardarDisponibilidad()" [disabled]="!dispSucia">Guardar disponibilidad</button>
+    <button type="button" (click)="cerrarDisponibilidad()">Cerrar</button>
+  </ng-container>
+</div>

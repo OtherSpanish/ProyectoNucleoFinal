@@ -1,0 +1,72 @@
+:host {
+  display: block;
+}
+.sesion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--naranja-300);
+  background: var(--naranja-100);
+  font: inherit;
+  cursor: pointer;
+}
+.sesion strong {
+  color: var(--naranja-700);
+  font-size: 13px;
+}
+.sesion span {
+  font-size: 12px;
+  color: var(--olivo-700);
+}
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.metricas div {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--olivo-50);
+}
+.metricas strong {
+  display: block;
+  font-family: var(--fuente-titulo);
+  font-size: 18px;
+  color: var(--olivo-900);
+}
+.metricas small {
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+.metricas span {
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+.metricas .cero strong {
+  color: var(--peligro);
+}
+.decision {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.exito {
+  background: #eef7e6;
+  color: var(--exito);
+}
+.peligro {
+  background: #fdf0ed;
+  color: var(--peligro);
+}
+.inicio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}

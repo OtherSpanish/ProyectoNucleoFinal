@@ -1,0 +1,8 @@
+.insignia[data-rol='ADMIN'] {
+  background: var(--olivo-900);
+  color: #fff;
+}
+.insignia[data-rol='COMITE'] {
+  background: var(--naranja-100);
+  color: var(--naranja-700);
+}

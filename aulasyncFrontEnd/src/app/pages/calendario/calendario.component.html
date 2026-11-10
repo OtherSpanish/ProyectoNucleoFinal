@@ -1,0 +1,43 @@
+<h2>Calendario semanal</h2>
+<p class="ayuda">Horario guardado. Las clases que coinciden en hora se muestran una junto a otra; pasa el mouse sobre una para ver el detalle.</p>
+
+<app-alerta [error]="error"></app-alerta>
+
+<p class="vacio" *ngIf="!cargando && sesiones.length === 0 && !error">
+  Aún no hay un horario guardado. El comité táctico debe generarlo en «Generar horario».
+</p>
+
+<ng-container *ngIf="sesiones.length > 0">
+  <div class="barra">
+    <label class="inline">Semestre
+      <select name="fsem" [(ngModel)]="filtroSemestre" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let s of semestres" [ngValue]="s">Semestre {{ s }}</option>
+      </select>
+    </label>
+    <label class="inline">Grupo n.º
+      <select name="fgrp" [(ngModel)]="filtroGrupo" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let n of numerosGrupo" [ngValue]="n">{{ n }}</option>
+      </select>
+    </label>
+    <label class="inline">Docente
+      <select name="fdoc" [(ngModel)]="filtroDocente" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let d of docentes" [ngValue]="d.id">{{ d.nombre }}</option>
+      </select>
+    </label>
+    <label class="inline">Sede
+      <select name="fsede" [(ngModel)]="filtroSede" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todas</option>
+        <option *ngFor="let s of sedes" [ngValue]="s.id">{{ s.nombre }}</option>
+      </select>
+    </label>
+  </div>
+
+  <p class="resumen">Sesiones ubicadas: {{ ubicadas.length }} · Sin ubicar: {{ sinUbicar.length }}</p>
+  <div class="card">
+    <app-calendario-semanal [sesiones]="ubicadas"></app-calendario-semanal>
+  </div>
+  <app-panel-sin-ubicar [sesiones]="sinUbicar"></app-panel-sin-ubicar>
+</ng-container>

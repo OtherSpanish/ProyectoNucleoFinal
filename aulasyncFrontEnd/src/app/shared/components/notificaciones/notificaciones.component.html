@@ -1,0 +1,11 @@
+<div class="pila" aria-live="polite">
+  @for (notificacion of notificacionService.notificaciones(); track notificacion.id) {
+    <div class="toast" [attr.data-tipo]="notificacion.tipo">
+      <app-icono [nombre]="notificacion.tipo === 'exito' ? 'check' : 'alerta'" />
+      <span>{{ notificacion.mensaje }}</span>
+      <button type="button" (click)="notificacionService.cerrar(notificacion.id)" aria-label="Cerrar">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
+  }
+</div>

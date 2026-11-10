@@ -1,0 +1,16 @@
+<app-encabezado-pagina
+  titulo="Vista previa del motor"
+  descripcion="Ejecuta el grafo de conflictos con DSatur y los conjuntos disjuntos sobre los datos actuales, sin guardar nada. Útil para revisar antes de reemplazar el horario."
+>
+  <button type="button" class="boton boton-primario" [disabled]="ejecutando()" (click)="ejecutar()">
+    <app-icono nombre="motor" [tamano]="16" /> {{ ejecutando() ? 'Ejecutando…' : 'Ejecutar motor' }}
+  </button>
+</app-encabezado-pagina>
+
+@if (ejecutando()) {
+  <div class="cargando">El motor está coloreando el grafo…</div>
+} @else if (resultado(); as datos) {
+  <app-resumen-generacion [resultado]="datos" [mostrarUbicadas]="true" />
+} @else {
+  <app-estado-vacio mensaje="Ejecuta el motor para ver la propuesta de horario." icono="motor" />
+}

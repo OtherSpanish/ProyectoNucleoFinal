@@ -5,19 +5,30 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 /**
  * Estudiante del programa.
  *
  * <p>
- * No tiene semestre propio: puede estar inscrito en grupos de materias de
- * semestres distintos. Sus inscripciones sirven para la regla de mínimo de
- * inscritos por grupo y para que el docente consulte sus listas. El código es
- * único.
+ * Tiene un semestre propio (el que cursa), aunque puede estar inscrito en
+ * grupos de materias de semestres distintos. Sus inscripciones sirven para la
+ * regla de mínimo de inscritos por grupo y para que el docente consulte sus
+ * listas. El código es único.
  * </p>
  *
- * @version 1.0
+ * <p>
+ * La columna {@code semestre_id} admite nulos en la base de datos para no
+ * romper los estudiantes que ya existían; el servicio la exige al crear y al
+ * actualizar. Si se borra el semestre, queda en nulo.
+ * </p>
+ *
+ * @version 1.1
  */
 @Entity
 @Table(name = "estudiante")
@@ -36,6 +47,11 @@ public class Estudiante {
 	@Column(length = 150)
 	private String correo;
 
+	@ManyToOne
+	@JoinColumn(name = "semestre_id")
+	@OnDelete(action = OnDeleteAction.SET_NULL)
+	private Semestre semestre;
+
 	/**
 	 * Constructor vacío requerido por JPA.
 	 */
@@ -46,14 +62,16 @@ public class Estudiante {
 	/**
 	 * Crea un estudiante con todos sus datos.
 	 *
-	 * @param codigo código institucional, único.
-	 * @param nombre nombre completo.
-	 * @param correo correo opcional.
+	 * @param codigo   código institucional, único.
+	 * @param nombre   nombre completo.
+	 * @param correo   correo opcional.
+	 * @param semestre semestre que cursa.
 	 */
-	public Estudiante(String codigo, String nombre, String correo) {
+	public Estudiante(String codigo, String nombre, String correo, Semestre semestre) {
 		this.codigo = codigo;
 		this.nombre = nombre;
 		this.correo = correo;
+		this.semestre = semestre;
 	}
 
 	/**
@@ -110,5 +128,19 @@ public class Estudiante {
 	 */
 	public void setCorreo(String correo) {
 		this.correo = correo;
+	}
+
+	/**
+	 * @return semestre que cursa, o {@code null} si no se ha asignado.
+	 */
+	public Semestre getSemestre() {
+		return semestre;
+	}
+
+	/**
+	 * @param semestre semestre que cursa.
+	 */
+	public void setSemestre(Semestre semestre) {
+		this.semestre = semestre;
 	}
 }

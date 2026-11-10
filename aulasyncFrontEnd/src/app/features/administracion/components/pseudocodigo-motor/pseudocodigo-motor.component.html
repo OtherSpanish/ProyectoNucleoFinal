@@ -1,0 +1,11 @@
+<ol class="codigo" aria-label="Pseudocódigo del motor">
+  @for (linea of lineas; track $index) {
+    <li
+      [class.activa]="lineasActivas().includes($index + 1)"
+      [class.principal]="lineaPrincipal() === $index + 1"
+    >
+      <span class="numero">{{ $index + 1 }}</span>
+      <code>{{ linea }}</code>
+    </li>
+  }
+</ol>

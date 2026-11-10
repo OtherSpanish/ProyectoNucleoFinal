@@ -1,22 +1,9 @@
-import { Component, inject } from '@angular/core';
-import { NgIf } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
-import { NavbarComponent } from './shared/navbar/navbar.component';
-import { AuthService } from './core/auth.service';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
-  imports: [NgIf, RouterOutlet, NavbarComponent],
-  template: `
-    <div class="app" [class.con-menu]="auth.autenticado()">
-      <app-navbar *ngIf="auth.autenticado()"></app-navbar>
-      <main class="contenedor">
-        <router-outlet></router-outlet>
-      </main>
-    </div>
-  `,
+  standalone: false,
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
 })
-export class AppComponent {
-  auth = inject(AuthService);
-}
+export class AppComponent {}

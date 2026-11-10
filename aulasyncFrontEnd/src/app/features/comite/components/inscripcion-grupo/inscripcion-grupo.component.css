@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+.buscador {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde-suave);
+}
+.lista li div {
+  display: flex;
+  flex-direction: column;
+}
+.resultados {
+  background: var(--olivo-50);
+  border-radius: 10px;
+  padding: 4px 12px;
+}

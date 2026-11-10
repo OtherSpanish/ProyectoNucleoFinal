@@ -1,0 +1,5 @@
+export type IntensidadHorariaModel =
+  | 'UNA_SESION_DOS_HORAS'
+  | 'DOS_SESIONES_DOS_HORAS'
+  | 'TRES_SESIONES_DOS_HORAS'
+  | 'UNA_SESION_CUATRO_HORAS';

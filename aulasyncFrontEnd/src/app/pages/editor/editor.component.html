@@ -1,0 +1,76 @@
+<h2>Editor de horario</h2>
+<p class="ayuda">
+  Arrastra una sesión a otra franja: la celda se pinta en verde si el movimiento es válido y en rojo si incumple alguna regla.
+  Las sesiones sin ubicar se arrastran desde el panel lateral. Cada movimiento exige un aula: elige la «Aula destino» a la derecha.
+</p>
+
+<app-alerta [error]="error" [ok]="ok" [lista]="lista"></app-alerta>
+
+<p class="vacio" *ngIf="!cargando && sesiones.length === 0">
+  No hay horario guardado todavía. Ve a <a routerLink="/generar">Generar horario</a>.
+</p>
+
+<ng-container *ngIf="sesiones.length > 0">
+  <div class="barra">
+    <label class="inline">Semestre
+      <select name="fsem" [(ngModel)]="filtroSemestre" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let s of semestres" [ngValue]="s">Semestre {{ s }}</option>
+      </select>
+    </label>
+    <label class="inline">Grupo n.º
+      <select name="fgrp" [(ngModel)]="filtroGrupo" (ngModelChange)="refiltrar()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let n of numerosGrupo" [ngValue]="n">{{ n }}</option>
+      </select>
+    </label>
+    <button type="button" (click)="recargar()">Recargar desde el servidor</button>
+  </div>
+
+  <div class="editor">
+    <div class="card">
+      <app-calendario-semanal
+        [sesiones]="delCalendario"
+        [editable]="true"
+        [seleccionadaId]="seleccionId"
+        [celdaEstado]="celdaEstado"
+        (sobre)="alSobre($event)"
+        (soltar)="alSoltar($event)"
+        (seleccionar)="seleccionar($event)"
+      ></app-calendario-semanal>
+    </div>
+
+    <aside>
+      <div class="card" *ngIf="seleccionada as s">
+        <h3>{{ s.cursoCodigo }} · Grupo {{ s.numeroGrupo }}</h3>
+        <p>
+          {{ s.cursoNombre }}<br>
+          Semestre {{ s.semestre }} · sesión {{ s.numeroSesion }} · {{ s.duracionHoras }} h<br>
+          Docente: {{ s.docenteNombre }}<br>
+          <ng-container *ngIf="s.ubicada; else noUbicada">
+            Ubicación: {{ s.diaNombre }} {{ s.horaInicio }}:00–{{ s.horaFin }}:00 · {{ s.aulaNombre }} ({{ s.sedeNombre }})
+          </ng-container>
+          <ng-template #noUbicada>Sin ubicar. Arrástrala al calendario.</ng-template>
+        </p>
+        <label>Aula destino
+          <select name="aulaDestino" [ngModel]="aulaDestino" (ngModelChange)="alCambiarAula($event)">
+            <option *ngFor="let a of aulas" [ngValue]="a.id">{{ esCompatible(a, s) ? '✓ ' : '' }}{{ etiquetaAula(a) }}</option>
+          </select>
+        </label>
+        <p class="ayuda">✓ = tipo y capacidad compatibles con el curso.</p>
+        <button type="button" class="peligro" *ngIf="s.ubicada" (click)="retirar()">Retirar del calendario</button>
+      </div>
+
+      <div class="alerta" *ngIf="celdaEstado" [class.error]="celdaEstado.valido === false" [class.ok]="celdaEstado.valido === true">
+        <ng-container *ngIf="celdaEstado.valido === null">Validando…</ng-container>
+        <ng-container *ngIf="celdaEstado.valido === true">Movimiento válido: suelta para aplicarlo.</ng-container>
+        <ng-container *ngIf="celdaEstado.valido === false">
+          No válido:
+          <ul><li *ngFor="let m of mensajesHover">{{ m }}</li></ul>
+        </ng-container>
+      </div>
+
+      <app-panel-sin-ubicar [sesiones]="sinUbicar" [arrastrable]="true" [seleccionadaId]="seleccionId" (seleccionar)="seleccionar($event)"></app-panel-sin-ubicar>
+    </aside>
+  </div>
+</ng-container>
